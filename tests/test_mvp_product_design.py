@@ -1,7 +1,6 @@
 import unittest
 from pathlib import Path
 
-
 DOCUMENT = Path(__file__).parents[1] / "docs" / "mvp-product-design.md"
 PROJECT_DESIGN = Path(__file__).parents[1] / "docs" / "experimentlens-project-design.md"
 

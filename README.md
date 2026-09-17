@@ -2,6 +2,8 @@
 
 ExperimentLens 是面向机器学习与数据科学实验的本地优先分析工作台。它把结果表、配置和日志统一为 runs，使用确定性统计生成 baseline 对比和异常 findings，再据此形成带证据的排错假设、下一轮最小实验方案与可分享报告。
 
+面向最终用户的文件准备、操作流程和结果解读说明，参见 [ExperimentLens 使用说明书](docs/user-guide.md)。
+
 ## 本地运行
 
 需要 Python 3.11+ 与 Node.js 20+。
