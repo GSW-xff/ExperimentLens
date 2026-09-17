@@ -1,0 +1,45 @@
+[build-system]
+requires = ["hatchling>=1.26"]
+build-backend = "hatchling.build"
+
+[project]
+name = "experimentlens"
+version = "0.1.0"
+description = "Evidence-first analysis workspace for computational experiments"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "Flask>=3.1,<4",
+  "numpy>=2.0,<3",
+  "openpyxl>=3.1,<4",
+  "pandas>=2.2,<3",
+  "pyarrow>=17,<24",
+  "pydantic>=2.10,<3",
+  "PyYAML>=6.0,<7",
+  "scipy>=1.14,<2",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3,<10",
+  "pytest-cov>=6,<8",
+  "ruff>=0.9,<1",
+]
+
+[project.scripts]
+experimentlens = "experimentlens.app:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["py-src/experimentlens"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["py-src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["E501"]
