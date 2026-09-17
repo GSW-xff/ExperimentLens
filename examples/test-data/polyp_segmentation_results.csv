@@ -1,0 +1,16 @@
+run_id,group,seed,status,dice_f1,iou,precision,recall,duration_seconds,batch_size,learning_rate,backbone,image_size,dataset_version,code_version
+polyp-unet-11,UNet Baseline,11,completed,0.821,0.697,0.833,0.809,1842,16,0.0003,resnet34,352,kvasir-seg-v1,seg-1.4.0
+polyp-unet-23,UNet Baseline,23,completed,0.827,0.705,0.839,0.815,1819,16,0.0003,resnet34,352,kvasir-seg-v1,seg-1.4.0
+polyp-unet-37,UNet Baseline,37,completed,0.824,0.701,0.836,0.812,1831,16,0.0003,resnet34,352,kvasir-seg-v1,seg-1.4.0
+polyp-unet-41,UNet Baseline,41,completed,0.819,0.694,0.831,0.807,1848,16,0.0003,resnet34,352,kvasir-seg-v1,seg-1.4.0
+polyp-unet-53,UNet Baseline,53,completed,0.826,0.704,0.838,0.814,1826,16,0.0003,resnet34,352,kvasir-seg-v1,seg-1.4.0
+polyp-unetpp-11,UNet++,11,completed,0.845,0.732,0.854,0.836,2196,16,0.0003,resnet34,352,kvasir-seg-v1,seg-1.4.0
+polyp-unetpp-23,UNet++,23,completed,0.849,0.738,0.858,0.84,2211,16,0.0003,resnet34,352,kvasir-seg-v1,seg-1.4.0
+polyp-unetpp-37,UNet++,37,completed,0.846,0.733,0.856,0.837,2187,16,0.0003,resnet34,352,kvasir-seg-v1,seg-1.4.0
+polyp-unetpp-41,UNet++,41,completed,0.843,0.729,0.852,0.834,2203,16,0.0003,resnet34,352,kvasir-seg-v1,seg-1.4.0
+polyp-unetpp-53,UNet++,53,completed,0.848,0.736,0.857,0.839,2194,16,0.0003,resnet34,352,kvasir-seg-v1,seg-1.4.0
+polyp-segformer-11,SegFormer-B2,11,completed,0.852,0.742,0.861,0.843,2472,12,0.00006,mit-b2,512,kvasir-seg-v1,seg-1.4.0
+polyp-segformer-23,SegFormer-B2,23,completed,0.811,0.682,0.827,0.796,2458,12,0.00006,mit-b2,512,kvasir-seg-v1,seg-1.4.0
+polyp-segformer-37,SegFormer-B2,37,oom,,,,,386,12,0.00006,mit-b2,512,kvasir-seg-v1,seg-1.4.0
+polyp-segformer-41,SegFormer-B2,41,completed,0.856,0.748,0.864,0.848,2491,12,0.00006,mit-b2,512,kvasir-seg-v1,seg-1.4.0
+polyp-segformer-53,SegFormer-B2,53,completed,0.807,0.676,0.823,0.792,2467,12,0.00006,mit-b2,512,kvasir-seg-v1,seg-1.4.0

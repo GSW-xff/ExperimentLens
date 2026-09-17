@@ -1,0 +1,11 @@
+run_id,group,seed,status,accuracy,f1,duration_seconds,batch_size,learning_rate,lora_rank,dropout,dataset_version,code_version
+sent-roberta-11,RoBERTa Baseline,11,completed,0.902,0.899,1431,32,0.00002,0,0.1,sst2-v3,nlp-2.1.0
+sent-roberta-23,RoBERTa Baseline,23,completed,0.905,0.902,1422,32,0.00002,0,0.1,sst2-v3,nlp-2.1.0
+sent-roberta-37,RoBERTa Baseline,37,completed,0.899,0.896,1444,32,0.00002,0,0.1,sst2-v3,nlp-2.1.0
+sent-roberta-41,RoBERTa Baseline,41,completed,0.903,0.9,1437,32,0.00002,0,0.1,sst2-v3,nlp-2.1.0
+sent-roberta-53,RoBERTa Baseline,53,completed,0.901,0.898,1428,32,0.00002,0,0.1,sst2-v3,nlp-2.1.0
+sent-lora-11,LoRA Rank 8,11,completed,0.898,0.895,982,64,0.0001,8,0.1,sst2-v3,nlp-2.1.0
+sent-lora-23,LoRA Rank 8,23,completed,0.901,0.898,971,64,0.0001,8,0.1,sst2-v3,nlp-2.1.0
+sent-lora-37,LoRA Rank 8,37,completed,0.899,0.896,989,64,0.0001,8,0.1,sst2-v3,nlp-2.1.0
+sent-lora-41,LoRA Rank 8,41,completed,0.902,0.899,976,64,0.0001,8,0.1,sst2-v3,nlp-2.1.0
+sent-lora-53,LoRA Rank 8,53,completed,0.962,0.96,995,64,0.0001,8,0.1,sst2-v3,nlp-2.1.0

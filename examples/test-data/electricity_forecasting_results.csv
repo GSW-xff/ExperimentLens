@@ -1,0 +1,16 @@
+run_id,group,seed,status,loss,mae,rmse,duration_seconds,context_length,prediction_length,learning_rate,dataset_version,code_version
+load-lstm-11,LSTM Baseline,11,completed,0.084,0.196,0.29,1262,168,24,0.001,electricity-v1,forecast-0.9.3
+load-lstm-23,LSTM Baseline,23,completed,0.086,0.198,0.293,1249,168,24,0.001,electricity-v1,forecast-0.9.3
+load-lstm-37,LSTM Baseline,37,completed,0.083,0.194,0.288,1271,168,24,0.001,electricity-v1,forecast-0.9.3
+load-lstm-41,LSTM Baseline,41,completed,0.085,0.197,0.291,1258,168,24,0.001,electricity-v1,forecast-0.9.3
+load-lstm-53,LSTM Baseline,53,completed,0.087,0.2,0.295,1266,168,24,0.001,electricity-v1,forecast-0.9.3
+load-patchtst-11,PatchTST,11,completed,0.071,0.178,0.266,1548,336,24,0.0005,electricity-v1,forecast-0.9.3
+load-patchtst-23,PatchTST,23,completed,0.073,0.181,0.27,1533,336,24,0.0005,electricity-v1,forecast-0.9.3
+load-patchtst-37,PatchTST,37,completed,0.07,0.176,0.265,1561,336,24,0.0005,electricity-v1,forecast-0.9.3
+load-patchtst-41,PatchTST,41,completed,0.072,0.179,0.268,1542,336,24,0.0005,electricity-v1,forecast-0.9.3
+load-patchtst-53,PatchTST,53,completed,0.074,0.182,0.272,1555,336,24,0.0005,electricity-v1,forecast-0.9.3
+load-patchtst-v2-11,PatchTST MixedData,11,completed,0.064,0.168,0.253,1588,336,24,0.0005,electricity-v2,forecast-0.9.3
+load-patchtst-v2-23,PatchTST MixedData,23,completed,0.065,0.169,0.255,1574,336,24,0.0005,electricity-v2,forecast-0.9.3
+load-patchtst-v2-37,PatchTST MixedData,37,completed,0.063,0.166,0.251,1602,336,24,0.0005,electricity-v2,forecast-0.9.3
+load-patchtst-v2-41,PatchTST MixedData,41,completed,0.066,0.171,0.257,1593,336,24,0.0005,electricity-v2,forecast-0.9.3
+load-patchtst-v2-53,PatchTST MixedData,53,completed,0.064,0.167,0.252,1581,336,24,0.0005,electricity-v2,forecast-0.9.3
