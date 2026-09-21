@@ -199,6 +199,12 @@ code { padding: 2px 5px; color: #9eeedb; border-radius: 4px; background: #0b1723
 .chat-context { display: flex; align-items: center; gap: 6px; padding: 11px 16px; border-bottom: 1px solid #1b293c; }
 .chat-context > span { margin-right: 3px; color: #62758c; font-size: 10px; }
 .chat-context .MuiChip-root { height: 21px; font-size: 10px; }
+.agent-config { display: grid; grid-template-columns: 92px 128px 1fr; align-items: center; gap: 8px; padding: 11px 16px; border-bottom: 1px solid #1b293c; }
+.agent-config .MuiInputBase-root { font-size: 12px; }
+.agent-config .MuiInputLabel-root { font-size: 12px; }
+.agent-config .MuiChip-root { justify-self: end; height: 25px; color: #91a3b8; border-color: #304159; font-size: 10px; }
+.runtime-alert { margin: 10px 14px 0; padding: 2px 10px !important; font-size: 11px !important; }
+.runtime-alert .MuiAlert-message { padding: 5px 0; }
 .agent-budget { padding: 10px 16px; border-bottom: 1px solid #1b293c; }
 .agent-budget > span { display: inline-block; margin-right: 14px; color: #8294aa; font-size: 10px; }
 .agent-budget .MuiLinearProgress-root { height: 3px; margin-top: 8px; border-radius: 3px; background: #1c2a3d; }
@@ -280,4 +286,6 @@ code { padding: 2px 5px; color: #9eeedb; border-radius: 4px; background: #0b1723
   .top-actions .MuiButton-startIcon { margin: 0; }
   .top-actions .MuiButton-contained { font-size: 0; }
   .top-actions .MuiButton-contained svg { font-size: 21px; }
+  .agent-config { grid-template-columns: 1fr 1fr; }
+  .agent-config .MuiChip-root { display: none; }
 }

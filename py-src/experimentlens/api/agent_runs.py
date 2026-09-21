@@ -3,10 +3,19 @@ from __future__ import annotations
 import json
 
 from flask import Blueprint, Response, current_app, jsonify, request, stream_with_context
+from pydantic import BaseModel, ConfigDict, Field
 
 from ..agent.orchestrator import TERMINAL_STATUSES, AgentOrchestrator
 
 agent_runs_api = Blueprint("agent_runs_api", __name__)
+
+
+class CreateAgentRunRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    question: str = Field(min_length=1, max_length=4000)
+    max_steps: int | None = Field(default=None, ge=1, le=50)
+    token_budget: int | None = Field(default=None, ge=1, le=1_000_000)
 
 
 def _orchestrator() -> AgentOrchestrator:
@@ -15,14 +24,19 @@ def _orchestrator() -> AgentOrchestrator:
 
 @agent_runs_api.post("/projects/<project_id>/agent-runs")
 def create_agent_run(project_id: str):
-    payload = request.get_json(silent=True) or {}
+    payload = CreateAgentRunRequest.model_validate(request.get_json(silent=True) or {})
     run = _orchestrator().create_run(
         project_id,
-        payload.get("question", ""),
-        max_steps=int(payload.get("max_steps", 8)),
-        token_budget=int(payload.get("token_budget", 8000)),
+        payload.question,
+        max_steps=payload.max_steps,
+        token_budget=payload.token_budget,
     )
     return jsonify(run.model_dump(mode="json")), 202
+
+
+@agent_runs_api.get("/projects/<project_id>/agent/runtime")
+def get_agent_runtime(project_id: str):
+    return jsonify(_orchestrator().runtime_info(project_id))
 
 
 @agent_runs_api.get("/agent-runs/<agent_run_id>")

@@ -38,10 +38,16 @@ Flask API 按项目/导入、分析/报告和 AgentRun 拆为 Blueprint。业务
 ```bash
 export OPENAI_API_KEY="..."
 export EXPERIMENTLENS_MODEL="gpt-5.6-luna"
+export EXPERIMENTLENS_AGENT_MAX_STEPS="8"
+export EXPERIMENTLENS_AGENT_TOKEN_BUDGET="8000"
+export EXPERIMENTLENS_AGENT_TIMEOUT_SECONDS="60"
+export EXPERIMENTLENS_AGENT_TOOL_TIMEOUT_SECONDS="10"
 experimentlens
 ```
 
-首批 Agent 工具为 `list_runs`、`compare_groups`、`search_logs` 和 `diff_configs`，全部强制限定到当前 project 且没有外部副作用。
+Agent 面板会显示当前模型提供方、模型名称、已注册工具、实时步骤和累计 Token，并允许在每次运行前调整最大步骤数和 Token 预算。`GET /api/projects/:project_id/agent/runtime` 只返回非敏感运行配置，不会返回 API Key。
+
+当前 Agent 工具为 `list_runs`、`compare_groups`、`search_logs`、`diff_configs`、`inspect_metric_series` 和 `get_finding_evidence`，全部强制限定到当前 project 且没有外部副作用。最终回答没有工具证据或包含无效 EvidenceRef 时会被拒绝。
 
 原始文件保存在 `.experimentlens/workspace/<project_id>/sources/original`，标准化表保存为 Parquet，分析结果和报告保存为结构化 JSON/Markdown。默认不上传外部服务，也不会修改或启动用户实验。
 

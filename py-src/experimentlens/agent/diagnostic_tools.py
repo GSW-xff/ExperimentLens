@@ -58,6 +58,27 @@ class DiffConfigsOutput(BaseModel):
     evidence_refs: list[EvidenceRef]
 
 
+class InspectMetricSeriesInput(BaseModel):
+    run_ids: list[str] = Field(default_factory=list, max_length=50)
+    metric: str | None = None
+    limit_per_run: int = Field(default=200, ge=1, le=1000)
+
+
+class InspectMetricSeriesOutput(BaseModel):
+    metric: str
+    series: list[dict[str, Any]]
+    evidence_refs: list[EvidenceRef]
+
+
+class GetFindingEvidenceInput(BaseModel):
+    finding_id: str = Field(min_length=1, max_length=240)
+
+
+class GetFindingEvidenceOutput(BaseModel):
+    finding: dict[str, Any]
+    evidence_refs: list[EvidenceRef]
+
+
 def build_diagnostic_registry(
     repository: ExperimentRepository, project_id: str
 ) -> ToolRegistry:
@@ -89,6 +110,26 @@ def build_diagnostic_registry(
         input_model=DiffConfigsInput,
         output_model=DiffConfigsOutput,
         handler=lambda arguments: _diff_configs(repository, project_id, arguments),
+    ))
+    registry.register(RegisteredTool(
+        name="inspect_metric_series",
+        description=(
+            "Inspect bounded metric points and deterministic trend summaries for selected runs "
+            "inside the current project."
+        ),
+        input_model=InspectMetricSeriesInput,
+        output_model=InspectMetricSeriesOutput,
+        handler=lambda arguments: _inspect_metric_series(repository, project_id, arguments),
+    ))
+    registry.register(RegisteredTool(
+        name="get_finding_evidence",
+        description=(
+            "Retrieve one deterministic finding and its validated source evidence from the "
+            "current project."
+        ),
+        input_model=GetFindingEvidenceInput,
+        output_model=GetFindingEvidenceOutput,
+        handler=lambda arguments: _get_finding_evidence(repository, project_id, arguments),
     ))
     return registry
 
@@ -211,6 +252,64 @@ def _diff_configs(
         "differences": differences,
         "evidence_refs": refs[:100],
     }
+
+
+def _inspect_metric_series(
+    repository: ExperimentRepository, project_id: str, arguments: InspectMetricSeriesInput
+) -> dict[str, Any]:
+    project = repository.get_project(project_id)
+    if not project.mapping:
+        raise ValueError("project has no confirmed mapping")
+    metric = arguments.metric or project.mapping.primary_metric
+    if metric not in project.mapping.metric_columns:
+        raise ValueError(f"unknown metric: {metric}")
+    metrics = repository.read_frame(project_id, "metrics")
+    selected = metrics[metrics["key"].astype(str) == metric].copy()
+    if arguments.run_ids:
+        selected = selected[selected["run_id"].astype(str).isin(arguments.run_ids)]
+    series = []
+    refs = []
+    for run_id, frame in selected.groupby("run_id", sort=True):
+        ordering = [column for column in ("step", "timestamp") if column in frame]
+        if ordering:
+            frame = frame.sort_values(ordering, na_position="last")
+        frame = frame.head(arguments.limit_per_run)
+        values = pd.to_numeric(frame["value"], errors="coerce").dropna()
+        points = [
+            {
+                "step": None if pd.isna(row.get("step")) else row.get("step"),
+                "timestamp": None if pd.isna(row.get("timestamp")) else row.get("timestamp"),
+                "value": None if pd.isna(row.get("value")) else row.get("value"),
+            }
+            for row in frame.to_dict(orient="records")
+        ]
+        series.append({
+            "run_id": str(run_id),
+            "point_count": len(points),
+            "first": float(values.iloc[0]) if not values.empty else None,
+            "last": float(values.iloc[-1]) if not values.empty else None,
+            "minimum": float(values.min()) if not values.empty else None,
+            "maximum": float(values.max()) if not values.empty else None,
+            "delta": float(values.iloc[-1] - values.iloc[0]) if len(values) > 1 else 0.0,
+            "points": points,
+        })
+        refs.append(EvidenceRef(
+            id=f"{run_id}:{metric}", kind="metric", label=f"{run_id} · {metric}"
+        ))
+    return {"metric": metric, "series": series, "evidence_refs": refs}
+
+
+def _get_finding_evidence(
+    repository: ExperimentRepository, project_id: str, arguments: GetFindingEvidenceInput
+) -> dict[str, Any]:
+    findings = repository.read_json(project_id, "analysis/findings.json", [])
+    finding = next(
+        (item for item in findings if str(item.get("id")) == arguments.finding_id), None
+    )
+    if finding is None:
+        raise ValueError(f"unknown finding: {arguments.finding_id}")
+    references = [EvidenceRef.model_validate(item) for item in finding.get("evidence_refs", [])]
+    return {"finding": finding, "evidence_refs": references}
 
 
 def _records(frame: pd.DataFrame) -> list[dict[str, Any]]:

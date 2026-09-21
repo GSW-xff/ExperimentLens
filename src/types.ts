@@ -204,3 +204,19 @@ export interface AgentEvent {
   created_at: string
   payload: Record<string, unknown>
 }
+
+export interface AgentRuntimeInfo {
+  provider: string
+  model: string
+  real_model: boolean
+  default_max_steps: number
+  default_token_budget: number
+  run_timeout_seconds: number
+  tool_timeout_seconds: number
+  tools: Array<{
+    name: string
+    description: string
+    read_only: boolean
+    requires_approval: boolean
+  }>
+}

@@ -24,6 +24,7 @@ class ModelRequest(BaseModel):
 class ModelResponse(BaseModel):
     content: str
     tool_calls: list[dict[str, Any]] = Field(default_factory=list)
+    output_items: list[dict[str, Any]] = Field(default_factory=list)
     input_tokens: int = Field(default=0, ge=0)
     output_tokens: int = Field(default=0, ge=0)
     finish_reason: str = "stop"
@@ -35,6 +36,9 @@ class ModelGateway(Protocol):
 
 class MockModelGateway:
     """Deterministic offline gateway for orchestrator and CI tests."""
+
+    provider = "mock"
+    model = "mock-model"
 
     def __init__(self, responses: Iterable[ModelResponse | dict[str, Any]]) -> None:
         self._responses = iter(
@@ -54,6 +58,7 @@ class MockModelGateway:
 class FallbackModelGateway:
     """Offline gateway that exercises the same tool loop without an external model."""
 
+    provider = "offline"
     model = "deterministic-fallback"
 
     def complete(self, request: ModelRequest) -> ModelResponse:
@@ -89,6 +94,7 @@ class FallbackModelGateway:
 class OpenAIModelGateway:
     """Minimal OpenAI Responses API gateway with bounded retry and no response storage."""
 
+    provider = "openai"
     endpoint = "https://api.openai.com/v1/responses"
 
     def __init__(
@@ -147,6 +153,10 @@ class OpenAIModelGateway:
 
     @staticmethod
     def _parse(payload: dict[str, Any]) -> ModelResponse:
+        status = payload.get("status")
+        if status in {"failed", "cancelled", "incomplete"}:
+            detail = payload.get("error") or payload.get("incomplete_details") or status
+            raise RuntimeError(f"OpenAI response did not complete: {detail}")
         content_parts: list[str] = []
         tool_calls: list[dict[str, Any]] = []
         for item in payload.get("output", []):
@@ -161,10 +171,13 @@ class OpenAIModelGateway:
                 for block in item.get("content", []):
                     if block.get("type") == "output_text":
                         content_parts.append(block.get("text", ""))
+                    if block.get("type") == "refusal":
+                        content_parts.append(block.get("refusal", ""))
         usage = payload.get("usage") or {}
         return ModelResponse(
             content="\n".join(part for part in content_parts if part),
             tool_calls=tool_calls,
+            output_items=payload.get("output", []),
             input_tokens=usage.get("input_tokens", 0),
             output_tokens=usage.get("output_tokens", 0),
             finish_reason="tool_call" if tool_calls else payload.get("status", "stop"),

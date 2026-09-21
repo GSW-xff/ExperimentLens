@@ -24,8 +24,13 @@
 - ToolRegistry 和离线 MockModelGateway。
 - 六类实验 fixture 和三个原始样例的完整分析快照。
 - IoU、MAE、RMSE、reward、latency、throughput、memory、cost 等指标推断。
+- Schema V2、多指标角色、约束检查和 Pareto 候选计算。
+- OpenAI Responses API 与确定性离线网关。
+- 有预算和超时控制的 Agent 编排，以及六个项目内只读诊断工具。
+- 先持久化后推送、支持 `Last-Event-ID` 的 SSE 事件流和 Agent 面板。
+- 最终回答的工具证据门禁与 EvidenceRef 有效性校验。
 
-当前尚未接入真实模型、Agent 编排、SSE、Trace 页面、评测运行器、MLflow 和 Proposal 回流。
+阶段一至阶段三的核心链路已经完成；当前尚未完成 Trace 页面、评测运行器、MLflow、Proposal 回流和生产级 Worker/数据库。真实模型调用需要部署环境提供 `OPENAI_API_KEY`，未配置模型时规则回答继续工作。
 
 ## 3. 总体实施路径
 

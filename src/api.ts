@@ -1,4 +1,4 @@
-import type { AgentEvent, AgentRun, Analysis, Project, RunRow, SchemaMapping } from './types'
+import type { AgentEvent, AgentRun, AgentRuntimeInfo, Analysis, Project, RunRow, SchemaMapping } from './types'
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, init)
@@ -38,8 +38,13 @@ export const api = {
     `/api/projects/${id}/chat`,
     { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question }) },
   ),
-  createAgentRun: (id: string, question: string) => request<AgentRun>(`/api/projects/${id}/agent-runs`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question }),
+  getAgentRuntime: (id: string) => request<AgentRuntimeInfo>(`/api/projects/${id}/agent/runtime`),
+  createAgentRun: (id: string, question: string, options?: { maxSteps?: number; tokenBudget?: number }) => request<AgentRun>(`/api/projects/${id}/agent-runs`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+      question,
+      ...(options?.maxSteps ? { max_steps: options.maxSteps } : {}),
+      ...(options?.tokenBudget ? { token_budget: options.tokenBudget } : {}),
+    }),
   }),
   getAgentRun: (id: string) => request<AgentRun>(`/api/agent-runs/${id}`),
   getAgentEvents: (id: string, after = 0) => request<AgentEvent[]>(`/api/agent-runs/${id}/events?after=${after}`),
@@ -47,7 +52,7 @@ export const api = {
   retryAgentRun: (id: string) => request<AgentRun>(`/api/agent-runs/${id}/retry`, { method: 'POST' }),
   subscribeAgentRun: (id: string, onEvent: (event: AgentEvent) => void, onError: () => void) => {
     const source = new EventSource(`/api/agent-runs/${id}/stream`)
-    const eventTypes = ['agent.created', 'agent.started', 'model.started', 'model.completed', 'tool.started', 'tool.completed', 'tool.failed', 'evidence.validated', 'agent.completed', 'agent.failed', 'agent.cancelled']
+    const eventTypes = ['agent.created', 'agent.started', 'model.started', 'model.completed', 'tool.requested', 'tool.started', 'tool.completed', 'tool.failed', 'evidence.validated', 'agent.completed', 'agent.failed', 'agent.cancelled']
     eventTypes.forEach((type) => source.addEventListener(type, (message) => {
       onEvent(JSON.parse((message as MessageEvent).data) as AgentEvent)
     }))

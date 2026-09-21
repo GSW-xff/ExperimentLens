@@ -15,7 +15,7 @@ import { api } from './api'
 import { MetricChart } from './components/MetricChart'
 import { ReportEditor } from './components/ReportEditor'
 import { addProject, bootstrap, refreshProject, selectProject, type AppDispatch, type RootState } from './store'
-import type { AgentEvent, AgentRun, Analysis, EvidenceRef, Finding, Project, Proposal, SchemaMapping } from './types'
+import type { AgentEvent, AgentRun, AgentRuntimeInfo, Analysis, EvidenceRef, Finding, Project, Proposal, SchemaMapping } from './types'
 
 type Page = 'overview' | 'runs' | 'findings' | 'hypotheses' | 'proposals' | 'report'
 
@@ -305,12 +305,23 @@ function ChatDrawer({ open, onClose, project, analysis }: { open: boolean; onClo
   const [busy, setBusy] = useState(false)
   const [run, setRun] = useState<AgentRun | null>(null)
   const [events, setEvents] = useState<AgentEvent[]>([])
+  const [runtime, setRuntime] = useState<AgentRuntimeInfo | null>(null)
+  const [maxSteps, setMaxSteps] = useState(8)
+  const [tokenBudget, setTokenBudget] = useState(8000)
   const sourceRef = useRef<EventSource | null>(null)
   const [messages, setMessages] = useState<Array<{ role: 'user' | 'assistant'; text: string; refs?: EvidenceRef[] }>>([
     { role: 'assistant', text: `我已读取 ${analysis.summary.run_count} 个 runs、${analysis.findings.length} 条发现。Agent 会通过只读工具逐步诊断，并校验最终证据。` },
   ])
 
   useEffect(() => () => sourceRef.current?.close(), [])
+  useEffect(() => {
+    if (!open) return
+    void api.getAgentRuntime(project.id).then((info) => {
+      setRuntime(info)
+      setMaxSteps(info.default_max_steps)
+      setTokenBudget(info.default_token_budget)
+    })
+  }, [open, project.id])
 
   const followRun = (nextRun: AgentRun) => {
     sourceRef.current?.close()
@@ -319,6 +330,16 @@ function ChatDrawer({ open, onClose, project, analysis }: { open: boolean; onClo
     setBusy(true)
     sourceRef.current = api.subscribeAgentRun(nextRun.id, (event) => {
       setEvents((items) => items.some((item) => item.id === event.id) ? items : [...items, event])
+      if (event.type === 'model.started') {
+        setRun((current) => current ? { ...current, step_count: Number(event.payload.step || current.step_count) } : current)
+      }
+      if (event.type === 'model.completed') {
+        setRun((current) => current ? {
+          ...current,
+          step_count: Number(event.payload.step || current.step_count),
+          used_tokens: Number(event.payload.used_tokens ?? current.used_tokens),
+        } : current)
+      }
       if (event.type === 'agent.completed') {
         const refs = Array.isArray(event.payload.evidence_refs) ? event.payload.evidence_refs as unknown as EvidenceRef[] : []
         setMessages((items) => [...items, { role: 'assistant', text: String(event.payload.answer || 'Agent 已完成诊断。'), refs }])
@@ -350,7 +371,7 @@ function ChatDrawer({ open, onClose, project, analysis }: { open: boolean; onClo
     setQuestion('')
     setBusy(true)
     try {
-      followRun(await api.createAgentRun(project.id, text))
+      followRun(await api.createAgentRun(project.id, text, { maxSteps, tokenBudget }))
     } catch (error) {
       setMessages((items) => [...items, { role: 'assistant', text: `暂时无法启动 Agent：${(error as Error).message}` }])
       setBusy(false)
@@ -372,6 +393,7 @@ function ChatDrawer({ open, onClose, project, analysis }: { open: boolean; onClo
     'agent.started': '开始诊断',
     'model.started': '模型正在规划',
     'model.completed': '模型完成一步推理',
+    'tool.requested': `模型请求调用 ${String(event.payload.tool_name || '工具')}`,
     'tool.started': `正在调用 ${String(event.payload.tool_name || '工具')}`,
     'tool.completed': `${String(event.payload.tool_name || '工具')} 已返回`,
     'tool.failed': `${String(event.payload.tool_name || '工具')} 调用失败`,
@@ -384,8 +406,14 @@ function ChatDrawer({ open, onClose, project, analysis }: { open: boolean; onClo
   const terminal = run && ['completed', 'failed', 'cancelled', 'budget_exhausted'].includes(run.status)
 
   return <Drawer anchor="right" open={open} onClose={onClose} PaperProps={{ className: 'chat-drawer' }}>
-    <header><div><AutoAwesomeRounded /><div><strong>Experiment Analyst</strong><span>有状态工具调用 · 证据校验</span></div></div><IconButton aria-label="关闭 Agent 面板" onClick={onClose}><CloseRounded /></IconButton></header>
-    <div className="chat-context"><span>当前上下文</span><Chip size="small" label={`${analysis.summary.run_count} runs`} /><Chip size="small" label={analysis.summary.primary_metric} />{run && <Chip size="small" color={run.status === 'completed' ? 'success' : run.status === 'failed' ? 'error' : 'default'} label={run.status} />}</div>
+    <header><div><AutoAwesomeRounded /><div><strong>Experiment Analyst</strong><span>{runtime?.real_model ? `${runtime.model} · 真实模型` : '离线模型 · 确定性工具'}</span></div></div><IconButton aria-label="关闭 Agent 面板" onClick={onClose}><CloseRounded /></IconButton></header>
+    <div className="chat-context"><span>当前上下文</span><Chip size="small" label={`${analysis.summary.run_count} runs`} /><Chip size="small" label={analysis.summary.primary_metric} />{runtime && <Chip size="small" color={runtime.real_model ? 'success' : 'default'} label={runtime.provider} />}{run && <Chip size="small" color={run.status === 'completed' ? 'success' : run.status === 'failed' ? 'error' : 'default'} label={run.status} />}</div>
+    <div className="agent-config">
+      <TextField size="small" type="number" label="最大步骤" value={maxSteps} disabled={busy} inputProps={{ min: 1, max: 50 }} onChange={(event) => setMaxSteps(Math.max(1, Math.min(50, Number(event.target.value) || 1)))} />
+      <TextField size="small" type="number" label="Token 预算" value={tokenBudget} disabled={busy} inputProps={{ min: 128, max: 1000000, step: 512 }} onChange={(event) => setTokenBudget(Math.max(128, Math.min(1000000, Number(event.target.value) || 128)))} />
+      <Tooltip title={runtime?.tools.map((tool) => tool.name).join(' · ') || '正在读取工具'}><Chip size="small" variant="outlined" label={`${runtime?.tools.length || 0} 个只读工具`} /></Tooltip>
+    </div>
+    {runtime && !runtime.real_model && <Alert className="runtime-alert" severity="info">当前未配置真实模型，将使用离线网关执行同一套工具与证据流程。</Alert>}
     {run && <div className="agent-budget"><span>步骤 {run.step_count}/{run.max_steps}</span><span>Token {run.used_tokens}/{run.token_budget}</span><LinearProgress variant="determinate" value={Math.min(100, run.used_tokens / run.token_budget * 100)} /></div>}
     <div className="messages">
       {messages.map((message, index) => <div key={index} className={`message ${message.role}`}><span>{message.role === 'assistant' ? 'Agent' : '你'}</span><p>{message.text}</p>{message.refs && <EvidenceList refs={message.refs} />}</div>)}

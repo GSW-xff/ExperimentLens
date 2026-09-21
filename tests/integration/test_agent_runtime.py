@@ -57,9 +57,11 @@ def test_agent_calls_multiple_tools_persists_events_and_streams_sse(tmp_path):
     assert completed["evidence_refs"]
     events = client.get(f"/api/agent-runs/{agent_run_id}/events").get_json()
     assert [event["id"] for event in events] == list(range(1, len(events) + 1))
-    assert {"tool.started", "tool.completed", "evidence.validated", "agent.completed"} <= {
+    assert {"tool.requested", "tool.started", "tool.completed", "evidence.validated", "agent.completed"} <= {
         event["type"] for event in events
     }
+    model_events = [event for event in events if event["type"] == "model.completed"]
+    assert model_events[-1]["payload"]["used_tokens"] == completed["used_tokens"]
 
     resumed = client.get(
         f"/api/agent-runs/{agent_run_id}/stream",
@@ -83,6 +85,13 @@ def test_default_gateway_runs_offline_without_api_key(tmp_path, monkeypatch):
     assert completed["status"] == "completed"
     assert completed["model"] == "deterministic-fallback"
     assert len(completed["tool_calls"]) == 2
+    runtime = client.get(f"/api/projects/{project['id']}/agent/runtime").get_json()
+    assert runtime["provider"] == "offline"
+    assert runtime["real_model"] is False
+    assert {tool["name"] for tool in runtime["tools"]} == {
+        "list_runs", "compare_groups", "search_logs", "diff_configs",
+        "inspect_metric_series", "get_finding_evidence",
+    }
 
 
 def test_openai_responses_payload_parser_extracts_tools_text_and_usage():
@@ -99,6 +108,7 @@ def test_openai_responses_payload_parser_extracts_tools_text_and_usage():
     assert response.tool_calls == [
         {"id": "call-1", "name": "list_runs", "arguments": {"limit": 3}}
     ]
+    assert response.output_items == payload["output"]
     assert response.input_tokens == 11
     assert response.output_tokens == 7
 
@@ -120,3 +130,39 @@ def test_agent_stops_when_model_exceeds_token_budget(tmp_path):
     completed = _wait_for_terminal(client, created.get_json()["id"])
     assert completed["status"] == "budget_exhausted"
     assert completed["answer"] is None
+
+
+def test_agent_rejects_final_answer_without_tool_backed_evidence(tmp_path):
+    app = create_app({"TESTING": True, "WORKSPACE_ROOT": tmp_path / "workspace"})
+    client = app.test_client()
+    project = client.post("/api/projects/demo").get_json()
+    gateway = MockModelGateway([{"content": "This claim has no evidence."}])
+    app.extensions["experimentlens_agent_orchestrator"] = AgentOrchestrator(
+        app.extensions["experimentlens_workspace"], gateway
+    )
+
+    created = client.post(
+        f"/api/projects/{project['id']}/agent-runs", json={"question": "analyze"}
+    )
+    completed = _wait_for_terminal(client, created.get_json()["id"])
+
+    assert completed["status"] == "failed"
+    assert "no tool-backed evidence" in completed["error"]
+
+
+def test_agent_run_request_rejects_unknown_fields_and_invalid_budget(tmp_path):
+    app = create_app({"TESTING": True, "WORKSPACE_ROOT": tmp_path / "workspace"})
+    client = app.test_client()
+    project = client.post("/api/projects/demo").get_json()
+
+    extra = client.post(
+        f"/api/projects/{project['id']}/agent-runs",
+        json={"question": "analyze", "project_id": "other"},
+    )
+    invalid = client.post(
+        f"/api/projects/{project['id']}/agent-runs",
+        json={"question": "analyze", "max_steps": 0},
+    )
+
+    assert extra.status_code == 400
+    assert invalid.status_code == 400
