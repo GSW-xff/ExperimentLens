@@ -270,6 +270,8 @@
       }
     ],
     "conclusion": "PatchTST MixedData 相对 LSTM Baseline 的提升方向一致，置信区间未跨过 0；仍需结合样本量与异常项判断可复现性。",
+    "constraints": [],
+    "constraints_satisfied": true,
     "failed_runs": 0,
     "findings_count": 1,
     "group_count": 3,
@@ -348,7 +350,122 @@
       }
     ],
     "high_priority_findings": 1,
+    "metric_definitions": [
+      {
+        "aggregation": "mean",
+        "constraint_operator": null,
+        "constraint_value": null,
+        "direction": "minimize",
+        "display_name": "loss",
+        "key": "loss",
+        "role": "primary",
+        "unit": null,
+        "valid_max": null,
+        "valid_min": null
+      },
+      {
+        "aggregation": "mean",
+        "constraint_operator": null,
+        "constraint_value": null,
+        "direction": "minimize",
+        "display_name": "mae",
+        "key": "mae",
+        "role": "secondary",
+        "unit": null,
+        "valid_max": null,
+        "valid_min": null
+      },
+      {
+        "aggregation": "mean",
+        "constraint_operator": null,
+        "constraint_value": null,
+        "direction": "minimize",
+        "display_name": "rmse",
+        "key": "rmse",
+        "role": "secondary",
+        "unit": null,
+        "valid_max": null,
+        "valid_min": null
+      }
+    ],
     "metric_direction": "minimize",
+    "metric_summaries": [
+      {
+        "direction": "minimize",
+        "display_name": "loss",
+        "groups": [
+          {
+            "group": "LSTM Baseline",
+            "mean": 0.085
+          },
+          {
+            "group": "PatchTST",
+            "mean": 0.072
+          },
+          {
+            "group": "PatchTST MixedData",
+            "mean": 0.0644
+          }
+        ],
+        "key": "loss",
+        "max": 0.087,
+        "mean": 0.0738,
+        "min": 0.063,
+        "role": "primary",
+        "unit": null
+      },
+      {
+        "direction": "minimize",
+        "display_name": "mae",
+        "groups": [
+          {
+            "group": "LSTM Baseline",
+            "mean": 0.197
+          },
+          {
+            "group": "PatchTST",
+            "mean": 0.17919999999999997
+          },
+          {
+            "group": "PatchTST MixedData",
+            "mean": 0.16820000000000002
+          }
+        ],
+        "key": "mae",
+        "max": 0.2,
+        "mean": 0.18146666666666664,
+        "min": 0.166,
+        "role": "secondary",
+        "unit": null
+      },
+      {
+        "direction": "minimize",
+        "display_name": "rmse",
+        "groups": [
+          {
+            "group": "LSTM Baseline",
+            "mean": 0.2914
+          },
+          {
+            "group": "PatchTST",
+            "mean": 0.2682
+          },
+          {
+            "group": "PatchTST MixedData",
+            "mean": 0.2536
+          }
+        ],
+        "key": "rmse",
+        "max": 0.295,
+        "mean": 0.2710666666666667,
+        "min": 0.251,
+        "role": "secondary",
+        "unit": null
+      }
+    ],
+    "pareto_groups": [
+      "PatchTST MixedData"
+    ],
     "primary_metric": "loss",
     "run_count": 15,
     "successful_runs": 15

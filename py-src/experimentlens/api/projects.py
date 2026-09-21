@@ -31,7 +31,11 @@ def list_projects():
 @projects_api.post("/projects")
 def create_project():
     payload = request.get_json(silent=True) or {}
-    project = _service().create_project(payload.get("name", ""), payload.get("objective", ""))
+    project = _service().create_project(
+        payload.get("name", ""),
+        payload.get("objective", ""),
+        payload.get("experiment_type", "general"),
+    )
     return jsonify(project.model_dump(mode="json")), 201
 
 

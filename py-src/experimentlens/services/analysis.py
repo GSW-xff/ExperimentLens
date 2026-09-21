@@ -40,14 +40,16 @@ class AnalysisService:
             "proposals": self.repository.read_json(project_id, "analysis/proposals.json", []),
         }
 
-    def get_runs(self, project_id: str) -> list[dict[str, Any]]:
+    def get_runs(self, project_id: str, metric_key: str | None = None) -> list[dict[str, Any]]:
         project = self.repository.get_project(project_id)
         runs = self.repository.read_frame(project_id, "runs")
         metrics = self.repository.read_frame(project_id, "metrics")
         params = self.repository.read_frame(project_id, "params")
         if runs.empty:
             return []
-        metric_key = project.mapping.primary_metric if project.mapping else None
+        metric_key = metric_key or (project.mapping.primary_metric if project.mapping else None)
+        if project.mapping and metric_key not in project.mapping.metric_columns:
+            raise ValueError(f"未知指标：{metric_key}")
         primary = (
             metrics[metrics["key"] == metric_key][["run_id", "value"]]
             if metric_key and not metrics.empty
@@ -61,6 +63,7 @@ class AnalysisService:
         for row in wide.to_dict(orient="records"):
             cleaned = {key: (None if pd.isna(value) else value) for key, value in row.items()}
             cleaned["params"] = params_by_run.get(str(cleaned["run_id"]), {})
+            cleaned["metric_key"] = metric_key
             result.append(cleaned)
         return result
 

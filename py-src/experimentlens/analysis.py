@@ -28,6 +28,9 @@ def analyze(
     data["group"] = data["group"].astype(str)
     groups = _group_statistics(data)
     comparison = _baseline_comparison(data, mapping)
+    metric_summaries = _metric_summaries(runs, metrics, mapping)
+    constraints = _constraint_results(metrics, mapping)
+    pareto_groups = _pareto_groups(runs, metrics, mapping)
     findings = run_detectors(data, params, logs, mapping, groups)
     hypotheses = generate_hypotheses(findings, mapping)
     EvidenceValidator(runs, metrics, params, logs).validate_analysis(findings, hypotheses)
@@ -49,6 +52,13 @@ def analyze(
         "best_run": best_row,
         "groups": groups,
         "comparison": comparison,
+        "metric_definitions": [
+            definition.model_dump(mode="json") for definition in mapping.metric_definitions
+        ],
+        "metric_summaries": metric_summaries,
+        "constraints": constraints,
+        "constraints_satisfied": all(item["satisfied"] for item in constraints),
+        "pareto_groups": pareto_groups,
         "findings_count": len(findings),
         "high_priority_findings": sum(item.severity in {Severity.CRITICAL, Severity.WARNING} for item in findings),
         "conclusion": _conclusion(comparison, mapping),
@@ -59,6 +69,109 @@ def analyze(
         "hypotheses": [item.model_dump(mode="json") for item in hypotheses],
         "proposals": [item.model_dump(mode="json") for item in proposals],
     }
+
+
+def _metric_summaries(
+    runs: pd.DataFrame, metrics: pd.DataFrame, mapping: SchemaMapping
+) -> list[dict[str, Any]]:
+    result = []
+    for definition in mapping.metric_definitions:
+        values = metrics.loc[metrics["key"] == definition.key, ["run_id", "value"]].copy()
+        values["value"] = pd.to_numeric(values["value"], errors="coerce")
+        joined = runs[["run_id", "group"]].merge(values, on="run_id", how="left")
+        valid = joined["value"].dropna()
+        result.append({
+            "key": definition.key,
+            "display_name": definition.display_name or definition.key,
+            "role": definition.role.value,
+            "direction": definition.direction.value,
+            "unit": definition.unit,
+            "mean": float(valid.mean()) if not valid.empty else None,
+            "min": float(valid.min()) if not valid.empty else None,
+            "max": float(valid.max()) if not valid.empty else None,
+            "groups": [
+                {
+                    "group": str(group),
+                    "mean": float(frame["value"].dropna().mean())
+                    if not frame["value"].dropna().empty
+                    else None,
+                }
+                for group, frame in joined.groupby("group", sort=True)
+            ],
+        })
+    return result
+
+
+def _constraint_results(metrics: pd.DataFrame, mapping: SchemaMapping) -> list[dict[str, Any]]:
+    operators = {
+        "lt": lambda value, threshold: value < threshold,
+        "lte": lambda value, threshold: value <= threshold,
+        "gt": lambda value, threshold: value > threshold,
+        "gte": lambda value, threshold: value >= threshold,
+    }
+    results = []
+    for definition in mapping.metric_definitions:
+        if definition.role.value != "constraint":
+            continue
+        frame = metrics.loc[metrics["key"] == definition.key, ["run_id", "value"]].copy()
+        frame["value"] = pd.to_numeric(frame["value"], errors="coerce")
+        valid = frame.dropna(subset=["value"])
+        predicate = operators[definition.constraint_operator]
+        threshold = float(definition.constraint_value)
+        passed = valid["value"].map(
+            lambda value, current_predicate=predicate, current_threshold=threshold: current_predicate(
+                float(value), current_threshold
+            )
+        )
+        violations = valid.loc[~passed, "run_id"].astype(str).tolist()
+        results.append({
+            "key": definition.key,
+            "operator": definition.constraint_operator,
+            "threshold": definition.constraint_value,
+            "evaluated_runs": int(len(valid)),
+            "violation_count": len(violations),
+            "violating_run_ids": violations,
+            "satisfied": bool(len(valid)) and not violations,
+        })
+    return results
+
+
+def _pareto_groups(
+    runs: pd.DataFrame, metrics: pd.DataFrame, mapping: SchemaMapping
+) -> list[str]:
+    definitions = [
+        definition
+        for definition in mapping.metric_definitions
+        if definition.role.value in {"primary", "secondary", "resource"}
+    ]
+    if len(definitions) < 2:
+        return []
+    metric_table = metrics.pivot_table(index="run_id", columns="key", values="value", aggfunc="mean")
+    grouped = runs[["run_id", "group"]].merge(metric_table, on="run_id", how="left")
+    means = grouped.groupby("group")[[definition.key for definition in definitions]].mean()
+    frontier = []
+    for group, row in means.iterrows():
+        dominated = False
+        for other_group, other in means.iterrows():
+            if group == other_group:
+                continue
+            comparisons = []
+            strict = False
+            for definition in definitions:
+                left, right = other.get(definition.key), row.get(definition.key)
+                if pd.isna(left) or pd.isna(right):
+                    comparisons.append(False)
+                    continue
+                favorable = left >= right if definition.direction.value == "maximize" else left <= right
+                better = left > right if definition.direction.value == "maximize" else left < right
+                comparisons.append(bool(favorable))
+                strict = strict or bool(better)
+            if comparisons and all(comparisons) and strict:
+                dominated = True
+                break
+        if not dominated:
+            frontier.append(str(group))
+    return sorted(frontier)
 
 
 def _group_statistics(data: pd.DataFrame) -> list[dict[str, Any]]:

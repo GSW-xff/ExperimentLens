@@ -176,6 +176,8 @@
       }
     ],
     "conclusion": "LoRA Rank 8 的均值优于 RoBERTa Baseline，但置信区间跨过 0，当前证据不足以确认稳定提升。",
+    "constraints": [],
+    "constraints_satisfied": true,
     "failed_runs": 0,
     "findings_count": 2,
     "group_count": 2,
@@ -230,7 +232,78 @@
       }
     ],
     "high_priority_findings": 2,
+    "metric_definitions": [
+      {
+        "aggregation": "mean",
+        "constraint_operator": null,
+        "constraint_value": null,
+        "direction": "maximize",
+        "display_name": "accuracy",
+        "key": "accuracy",
+        "role": "primary",
+        "unit": null,
+        "valid_max": null,
+        "valid_min": null
+      },
+      {
+        "aggregation": "mean",
+        "constraint_operator": null,
+        "constraint_value": null,
+        "direction": "maximize",
+        "display_name": "f1",
+        "key": "f1",
+        "role": "secondary",
+        "unit": null,
+        "valid_max": null,
+        "valid_min": null
+      }
+    ],
     "metric_direction": "maximize",
+    "metric_summaries": [
+      {
+        "direction": "maximize",
+        "display_name": "accuracy",
+        "groups": [
+          {
+            "group": "LoRA Rank 8",
+            "mean": 0.9124000000000001
+          },
+          {
+            "group": "RoBERTa Baseline",
+            "mean": 0.9019999999999999
+          }
+        ],
+        "key": "accuracy",
+        "max": 0.962,
+        "mean": 0.9071999999999999,
+        "min": 0.898,
+        "role": "primary",
+        "unit": null
+      },
+      {
+        "direction": "maximize",
+        "display_name": "f1",
+        "groups": [
+          {
+            "group": "LoRA Rank 8",
+            "mean": 0.9096
+          },
+          {
+            "group": "RoBERTa Baseline",
+            "mean": 0.899
+          }
+        ],
+        "key": "f1",
+        "max": 0.96,
+        "mean": 0.9043000000000003,
+        "min": 0.895,
+        "role": "secondary",
+        "unit": null
+      }
+    ],
+    "pareto_groups": [
+      "LoRA Rank 8"
+    ],
     "primary_metric": "accuracy",
     "run_count": 10,
     "successful_runs": 10

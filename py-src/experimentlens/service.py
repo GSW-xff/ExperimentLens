@@ -28,8 +28,10 @@ class ExperimentService:
         self.analysis = AnalysisService(workspace)
         self.reports = ReportService(workspace, self.analysis)
 
-    def create_project(self, name: str, objective: str) -> Project:
-        return self.projects.create_project(name, objective)
+    def create_project(
+        self, name: str, objective: str, experiment_type: str = "general"
+    ) -> Project:
+        return self.projects.create_project(name, objective, experiment_type)
 
     def ingest_paths(self, project_id: str, paths: list[Path]) -> dict[str, Any]:
         return self.ingestion.ingest_paths(project_id, paths)
@@ -43,8 +45,10 @@ class ExperimentService:
     def get_analysis(self, project_id: str) -> dict[str, Any]:
         return self.analysis.get_analysis(project_id)
 
-    def get_runs(self, project_id: str) -> list[dict[str, Any]]:
-        return self.analysis.get_runs(project_id)
+    def get_runs(
+        self, project_id: str, metric_key: str | None = None
+    ) -> list[dict[str, Any]]:
+        return self.analysis.get_runs(project_id, metric_key)
 
     def chat(self, project_id: str, question: str) -> dict[str, Any]:
         return self.analysis.chat(project_id, question)

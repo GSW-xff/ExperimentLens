@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 import yaml
 
-from .domain import SchemaMapping
+from .domain import MetricDefinition, MetricDirection, MetricRole, SchemaMapping
 
 RUN_ALIASES = ("run_id", "run", "trial_id", "trial", "experiment_id", "id")
 GROUP_ALIASES = ("group", "variant", "arm", "config_name", "experiment_group", "model")
@@ -171,14 +171,7 @@ def infer_mapping(frame: pd.DataFrame) -> tuple[SchemaMapping, dict[str, float]]
 
     groups = [str(value) for value in frame[group_column].dropna().unique()]
     baseline = next((value for value in groups if "base" in value.lower() or value.lower() in {"a", "control"}), groups[0])
-    direction = (
-        "minimize"
-        if any(
-            word in primary.lower()
-            for word in ("loss", "error", "mae", "rmse", "perplexity", "latency", "memory", "cost")
-        )
-        else "maximize"
-    )
+    direction = _metric_direction(primary)
     structural = set(filter(None, [run_column, group_column, choose(SEED_ALIASES), choose(STATUS_ALIASES), choose(DURATION_ALIASES)]))
     parameter_columns = [column for column in columns if column not in structural and column not in metric_columns]
     mapping = SchemaMapping(
@@ -191,6 +184,21 @@ def infer_mapping(frame: pd.DataFrame) -> tuple[SchemaMapping, dict[str, float]]
         metric_direction=direction,
         baseline_group=baseline,
         metric_columns=metric_columns,
+        metric_definitions=[
+            MetricDefinition(
+                key=column,
+                display_name=column,
+                role=(
+                    MetricRole.PRIMARY
+                    if column == primary
+                    else MetricRole.RESOURCE
+                    if any(word in column.lower() for word in ("latency", "memory", "cost", "duration"))
+                    else MetricRole.SECONDARY
+                ),
+                direction=MetricDirection(_metric_direction(column)),
+            )
+            for column in metric_columns
+        ],
         parameter_columns=parameter_columns,
     )
     confidence = {
@@ -200,6 +208,17 @@ def infer_mapping(frame: pd.DataFrame) -> tuple[SchemaMapping, dict[str, float]]
         "primary_metric": 0.9 if any(hint in primary.lower() for hint in METRIC_HINTS) else 0.66,
     }
     return mapping, confidence
+
+
+def _metric_direction(column: str) -> str:
+    return (
+        "minimize"
+        if any(
+            word in column.lower()
+            for word in ("loss", "error", "mae", "rmse", "perplexity", "latency", "memory", "cost")
+        )
+        else "maximize"
+    )
 
 
 def normalize(frame: pd.DataFrame, mapping: SchemaMapping) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:

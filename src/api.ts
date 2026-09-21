@@ -9,16 +9,18 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const api = {
   listProjects: () => request<Project[]>('/api/projects'),
-  createProject: (name: string, objective: string) =>
+  createProject: (name: string, objective: string, experimentType = 'general') =>
     request<Project>('/api/projects', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, objective }),
+      body: JSON.stringify({ name, objective, experiment_type: experimentType }),
     }),
   createDemo: () => request<Project>('/api/projects/demo', { method: 'POST' }),
   getProject: (id: string) => request<Project>(`/api/projects/${id}`),
   getAnalysis: (id: string) => request<Analysis>(`/api/projects/${id}/analysis`),
-  getRuns: (id: string) => request<RunRow[]>(`/api/projects/${id}/runs`),
+  getRuns: (id: string, metric?: string) => request<RunRow[]>(
+    `/api/projects/${id}/runs${metric ? `?metric=${encodeURIComponent(metric)}` : ''}`,
+  ),
   upload: async (id: string, files: File[]) => {
     const data = new FormData()
     files.forEach((file) => data.append('files', file))

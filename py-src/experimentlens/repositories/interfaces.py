@@ -11,7 +11,9 @@ from ..domain import Project
 class ExperimentRepository(Protocol):
     """Storage boundary used by services; implementations may be local or remote."""
 
-    def create_project(self, name: str, objective: str) -> Project: ...
+    def create_project(
+        self, name: str, objective: str, experiment_type: str = "general"
+    ) -> Project: ...
 
     def save_project(self, project: Project) -> None: ...
 

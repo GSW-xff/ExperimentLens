@@ -33,7 +33,7 @@ def get_analysis(project_id: str):
 
 @analysis_api.get("/projects/<project_id>/runs")
 def get_runs(project_id: str):
-    return jsonify(_service().get_runs(project_id))
+    return jsonify(_service().get_runs(project_id, request.args.get("metric")))
 
 
 @analysis_api.get("/projects/<project_id>/findings")

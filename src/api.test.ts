@@ -9,7 +9,7 @@ describe('ExperimentLens API client', () => {
     await api.createProject('Test', 'Compare seeds')
     expect(fetchMock).toHaveBeenCalledWith('/api/projects', expect.objectContaining({ method: 'POST' }))
     const init = fetchMock.mock.calls[0][1] as RequestInit
-    expect(JSON.parse(init.body as string)).toEqual({ name: 'Test', objective: 'Compare seeds' })
+    expect(JSON.parse(init.body as string)).toEqual({ name: 'Test', objective: 'Compare seeds', experiment_type: 'general' })
   })
 
   it('surfaces the server validation error', async () => {
@@ -24,5 +24,11 @@ describe('ExperimentLens API client', () => {
     const init = fetchMock.mock.calls[0][1] as RequestInit
     const body = init.body as FormData
     expect(body.getAll('files')).toHaveLength(2)
+  })
+
+  it('requests a selected run metric with an encoded query', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('[]', { status: 200, headers: { 'Content-Type': 'application/json' } }))
+    await api.getRuns('p1', 'latency p95')
+    expect(fetchMock).toHaveBeenCalledWith('/api/projects/p1/runs?metric=latency%20p95', undefined)
   })
 })

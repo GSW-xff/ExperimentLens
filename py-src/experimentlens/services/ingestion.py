@@ -79,6 +79,7 @@ class IngestionService:
         self.repository.write_frame(project_id, "params", params)
         self.repository.write_json(project_id, "normalized/artifacts.json", logs)
         project.mapping = mapping
+        project.metric_definitions = mapping.metric_definitions
         project.state = "ready"
         self.repository.save_project(project)
         return {

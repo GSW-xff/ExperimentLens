@@ -8,14 +8,32 @@ export interface EvidenceRef {
 }
 
 export interface Project {
+  schema_version: number
   id: string
   name: string
   objective: string
   created_at: string
   updated_at: string
   state: string
+  experiment_type: string
+  domain_tags: string[]
   sources: Array<Record<string, unknown>>
   mapping?: SchemaMapping | null
+}
+
+export type MetricRole = 'primary' | 'secondary' | 'constraint' | 'resource'
+
+export interface MetricDefinition {
+  key: string
+  display_name?: string | null
+  role: MetricRole
+  direction: 'maximize' | 'minimize'
+  unit?: string | null
+  aggregation: string
+  valid_min?: number | null
+  valid_max?: number | null
+  constraint_operator?: 'lt' | 'lte' | 'gt' | 'gte' | null
+  constraint_value?: number | null
 }
 
 export interface SchemaMapping {
@@ -28,6 +46,7 @@ export interface SchemaMapping {
   metric_direction: 'maximize' | 'minimize'
   baseline_group: string
   metric_columns: string[]
+  metric_definitions: MetricDefinition[]
   parameter_columns: string[]
 }
 
@@ -68,6 +87,29 @@ export interface Summary {
   best_run: { run_id: string; group: string; value: number } | null
   groups: GroupStat[]
   comparison: Comparison[]
+  metric_definitions: MetricDefinition[]
+  metric_summaries: Array<{
+    key: string
+    display_name: string
+    role: MetricRole
+    direction: string
+    unit?: string | null
+    mean: number | null
+    min: number | null
+    max: number | null
+    groups: Array<{ group: string; mean: number | null }>
+  }>
+  constraints: Array<{
+    key: string
+    operator: string
+    threshold: number
+    evaluated_runs: number
+    violation_count: number
+    violating_run_ids: string[]
+    satisfied: boolean
+  }>
+  constraints_satisfied: boolean
+  pareto_groups: string[]
   findings_count: number
   high_priority_findings: number
   conclusion: string
@@ -124,5 +166,6 @@ export interface RunRow {
   status: string
   duration_seconds: number | null
   metric_value: number | null
+  metric_key?: string | null
   params: Record<string, string>
 }

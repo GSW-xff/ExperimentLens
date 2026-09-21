@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 def utc_now() -> str:
@@ -37,6 +37,40 @@ class ToolCallStatus(StrEnum):
 class SpanStatus(StrEnum):
     OK = "ok"
     ERROR = "error"
+
+
+class MetricRole(StrEnum):
+    PRIMARY = "primary"
+    SECONDARY = "secondary"
+    CONSTRAINT = "constraint"
+    RESOURCE = "resource"
+
+
+class MetricDirection(StrEnum):
+    MAXIMIZE = "maximize"
+    MINIMIZE = "minimize"
+
+
+class MetricDefinition(BaseModel):
+    key: str
+    display_name: str | None = None
+    role: MetricRole = MetricRole.SECONDARY
+    direction: MetricDirection = MetricDirection.MAXIMIZE
+    unit: str | None = None
+    aggregation: str = "mean"
+    valid_min: float | None = None
+    valid_max: float | None = None
+    constraint_operator: str | None = None
+    constraint_value: float | None = None
+
+    @model_validator(mode="after")
+    def validate_constraint(self):
+        if self.role == MetricRole.CONSTRAINT:
+            if self.constraint_operator not in {"lt", "lte", "gt", "gte"}:
+                raise ValueError("constraint metric requires lt, lte, gt or gte operator")
+            if self.constraint_value is None:
+                raise ValueError("constraint metric requires constraint_value")
+        return self
 
 
 class EvidenceRef(BaseModel):
@@ -147,6 +181,7 @@ class SchemaMapping(BaseModel):
     metric_direction: str = "maximize"
     baseline_group: str
     metric_columns: list[str] = Field(default_factory=list)
+    metric_definitions: list[MetricDefinition] = Field(default_factory=list)
     parameter_columns: list[str] = Field(default_factory=list)
 
     @field_validator("metric_direction")
@@ -156,13 +191,43 @@ class SchemaMapping(BaseModel):
             raise ValueError("metric_direction must be maximize or minimize")
         return value
 
+    @model_validator(mode="after")
+    def populate_metric_definitions(self):
+        keys = list(dict.fromkeys([self.primary_metric, *self.metric_columns]))
+        existing = {definition.key: definition for definition in self.metric_definitions}
+        definitions = []
+        for key in keys:
+            definition = existing.get(key)
+            if definition is None:
+                definition = MetricDefinition(
+                    key=key,
+                    display_name=key,
+                    role=MetricRole.PRIMARY if key == self.primary_metric else MetricRole.SECONDARY,
+                    direction=(
+                        MetricDirection(self.metric_direction)
+                        if key == self.primary_metric
+                        else MetricDirection.MAXIMIZE
+                    ),
+                )
+            elif key == self.primary_metric and definition.role != MetricRole.PRIMARY:
+                definition = definition.model_copy(update={"role": MetricRole.PRIMARY})
+            definitions.append(definition)
+        self.metric_definitions = definitions
+        self.metric_columns = keys
+        return self
+
 
 class Project(BaseModel):
+    schema_version: int = Field(default=2, ge=2)
     id: str
     name: str
     objective: str
     created_at: str = Field(default_factory=utc_now)
     updated_at: str = Field(default_factory=utc_now)
     state: str = "empty"
+    experiment_type: str = "general"
+    domain_tags: list[str] = Field(default_factory=list)
+    owner_id: str | None = None
     sources: list[dict[str, Any]] = Field(default_factory=list)
     mapping: SchemaMapping | None = None
+    metric_definitions: list[MetricDefinition] = Field(default_factory=list)

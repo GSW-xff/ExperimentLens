@@ -10,6 +10,7 @@ from typing import Any
 import pandas as pd
 
 from .domain import Project, utc_now
+from .migrations import migrate_project_payload
 
 
 class Workspace:
@@ -24,9 +25,16 @@ class Workspace:
             raise ValueError("invalid project id")
         return self.root / safe
 
-    def create_project(self, name: str, objective: str) -> Project:
+    def create_project(
+        self, name: str, objective: str, experiment_type: str = "general"
+    ) -> Project:
         project_id = f"prj_{uuid.uuid4().hex[:10]}"
-        project = Project(id=project_id, name=name.strip(), objective=objective.strip())
+        project = Project(
+            id=project_id,
+            name=name.strip(),
+            objective=objective.strip(),
+            experiment_type=experiment_type,
+        )
         directory = self.project_dir(project_id)
         for child in (
             "sources/original",
@@ -49,16 +57,37 @@ class Workspace:
         path = self.project_dir(project_id) / "project.json"
         if not path.exists():
             raise FileNotFoundError(project_id)
-        return Project.model_validate_json(path.read_text(encoding="utf-8"))
+        return self._load_project(path)
 
     def list_projects(self) -> list[Project]:
         projects: list[Project] = []
         for path in self.root.glob("*/project.json"):
             try:
-                projects.append(Project.model_validate_json(path.read_text(encoding="utf-8")))
+                projects.append(self._load_project(path))
             except (OSError, ValueError):
                 continue
         return sorted(projects, key=lambda item: item.updated_at, reverse=True)
+
+    def _load_project(self, path: Path) -> Project:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        migrated, manifest = migrate_project_payload(payload)
+        project = Project.model_validate(migrated)
+        if manifest is not None:
+            backup_dir = path.parent / "migration-backups"
+            backup_dir.mkdir(parents=True, exist_ok=True)
+            backup = backup_dir / "v1-project.json"
+            if not backup.exists():
+                backup.write_text(
+                    json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
+                )
+            manifest_path = backup_dir / "v1-to-v2-manifest.json"
+            manifest_path.write_text(
+                json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8"
+            )
+            temporary = path.with_suffix(".json.tmp")
+            temporary.write_text(project.model_dump_json(indent=2), encoding="utf-8")
+            temporary.replace(path)
+        return project
 
     def save_upload(self, project_id: str, filename: str, stream) -> tuple[Path, str]:
         import hashlib
