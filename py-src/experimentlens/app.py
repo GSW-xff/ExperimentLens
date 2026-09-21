@@ -6,7 +6,8 @@ from pathlib import Path
 from flask import Flask, Response, jsonify, send_from_directory
 from pydantic import ValidationError
 
-from .api import analysis_api, projects_api
+from .agent.orchestrator import AgentOrchestrator
+from .api import agent_runs_api, analysis_api, projects_api
 from .repositories.local import LocalRepository
 from .service import ExperimentService
 
@@ -20,8 +21,10 @@ def create_app(test_config: dict | None = None) -> Flask:
     workspace = LocalRepository(app.config.get("WORKSPACE_ROOT"))
     app.extensions["experimentlens_workspace"] = workspace
     app.extensions["experimentlens_service"] = ExperimentService(workspace)
+    app.extensions["experimentlens_agent_orchestrator"] = AgentOrchestrator(workspace)
     app.register_blueprint(projects_api, url_prefix="/api")
     app.register_blueprint(analysis_api, url_prefix="/api")
+    app.register_blueprint(agent_runs_api, url_prefix="/api")
 
     @app.errorhandler(ValueError)
     @app.errorhandler(ValidationError)

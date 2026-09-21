@@ -15,7 +15,7 @@ import { api } from './api'
 import { MetricChart } from './components/MetricChart'
 import { ReportEditor } from './components/ReportEditor'
 import { addProject, bootstrap, refreshProject, selectProject, type AppDispatch, type RootState } from './store'
-import type { Analysis, EvidenceRef, Finding, Project, Proposal, SchemaMapping } from './types'
+import type { AgentEvent, AgentRun, Analysis, EvidenceRef, Finding, Project, Proposal, SchemaMapping } from './types'
 
 type Page = 'overview' | 'runs' | 'findings' | 'hypotheses' | 'proposals' | 'report'
 
@@ -303,16 +303,100 @@ function NewAnalysisDialog({ open, onClose, onComplete }: { open: boolean; onClo
 function ChatDrawer({ open, onClose, project, analysis }: { open: boolean; onClose: () => void; project: Project; analysis: Analysis }) {
   const [question, setQuestion] = useState('')
   const [busy, setBusy] = useState(false)
-  const [messages, setMessages] = useState<Array<{ role: 'user' | 'assistant'; text: string; refs?: Array<{ label: string }> }>>([
-    { role: 'assistant', text: `我已读取 ${analysis.summary.run_count} 个 runs、${analysis.findings.length} 条发现。你可以追问 baseline、seed 波动、异常原因或下一轮实验。` },
+  const [run, setRun] = useState<AgentRun | null>(null)
+  const [events, setEvents] = useState<AgentEvent[]>([])
+  const sourceRef = useRef<EventSource | null>(null)
+  const [messages, setMessages] = useState<Array<{ role: 'user' | 'assistant'; text: string; refs?: EvidenceRef[] }>>([
+    { role: 'assistant', text: `我已读取 ${analysis.summary.run_count} 个 runs、${analysis.findings.length} 条发现。Agent 会通过只读工具逐步诊断，并校验最终证据。` },
   ])
+
+  useEffect(() => () => sourceRef.current?.close(), [])
+
+  const followRun = (nextRun: AgentRun) => {
+    sourceRef.current?.close()
+    setRun(nextRun)
+    setEvents([])
+    setBusy(true)
+    sourceRef.current = api.subscribeAgentRun(nextRun.id, (event) => {
+      setEvents((items) => items.some((item) => item.id === event.id) ? items : [...items, event])
+      if (event.type === 'agent.completed') {
+        const refs = Array.isArray(event.payload.evidence_refs) ? event.payload.evidence_refs as unknown as EvidenceRef[] : []
+        setMessages((items) => [...items, { role: 'assistant', text: String(event.payload.answer || 'Agent 已完成诊断。'), refs }])
+        setBusy(false)
+        sourceRef.current?.close()
+        void api.getAgentRun(nextRun.id).then(setRun)
+      }
+      if (event.type === 'agent.failed' || event.type === 'agent.cancelled') {
+        setMessages((items) => [...items, { role: 'assistant', text: event.type === 'agent.cancelled' ? '本次 Agent 运行已取消。' : `Agent 运行失败：${String(event.payload.error || '未知错误')}` }])
+        setBusy(false)
+        sourceRef.current?.close()
+        void api.getAgentRun(nextRun.id).then(setRun)
+      }
+    }, () => {
+      void api.getAgentRun(nextRun.id).then((latest) => {
+        setRun(latest)
+        if (['completed', 'failed', 'cancelled', 'budget_exhausted'].includes(latest.status)) {
+          setBusy(false)
+          sourceRef.current?.close()
+        }
+      })
+    })
+  }
+
   const send = async (preset?: string) => {
     const text = preset || question
     if (!text.trim() || busy) return
-    setMessages((items) => [...items, { role: 'user', text }]); setQuestion(''); setBusy(true)
-    try { const result = await api.chat(project.id, text); setMessages((items) => [...items, { role: 'assistant', text: result.answer, refs: result.evidence_refs }]) } catch (error) { setMessages((items) => [...items, { role: 'assistant', text: `暂时无法回答：${(error as Error).message}` }]) } finally { setBusy(false) }
+    setMessages((items) => [...items, { role: 'user', text }])
+    setQuestion('')
+    setBusy(true)
+    try {
+      followRun(await api.createAgentRun(project.id, text))
+    } catch (error) {
+      setMessages((items) => [...items, { role: 'assistant', text: `暂时无法启动 Agent：${(error as Error).message}` }])
+      setBusy(false)
+    }
   }
-  return <Drawer anchor="right" open={open} onClose={onClose} PaperProps={{ className: 'chat-drawer' }}><header><div><AutoAwesomeRounded /><div><strong>Experiment Analyst</strong><span>回答只使用当前项目证据</span></div></div><IconButton aria-label="关闭 Agent 面板" onClick={onClose}><CloseRounded /></IconButton></header><div className="chat-context"><span>当前上下文</span><Chip size="small" label={`${analysis.summary.run_count} runs`} /><Chip size="small" label={`${analysis.findings.length} findings`} /><Chip size="small" label={analysis.summary.primary_metric} /></div><div className="messages">{messages.map((message, index) => <div key={index} className={`message ${message.role}`}><span>{message.role === 'assistant' ? 'Agent' : '你'}</span><p>{message.text}</p>{message.refs && <EvidenceList refs={message.refs.map((ref) => ({ ...ref, id: ref.label, kind: 'evidence' }))} />}</div>)}{busy && <div className="message assistant typing"><span>Agent</span><p><i /><i /><i /></p></div>}</div><div className="chat-suggestions"><button onClick={() => send('为什么均值更高但仍不建议直接采用？')}>均值更高为什么不直接采用？</button><button onClick={() => send('如果只能再跑三次实验，应该怎么安排？')}>只跑三次，怎么安排？</button></div><div className="chat-input"><TextField fullWidth multiline maxRows={4} placeholder="追问当前实验…" value={question} onChange={(event) => setQuestion(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); void send() } }} /><IconButton aria-label="发送问题" color="primary" disabled={!question.trim() || busy} onClick={() => send()}><ArrowForwardRounded /></IconButton></div></Drawer>
+
+  const cancel = async () => {
+    if (!run) return
+    const cancelled = await api.cancelAgentRun(run.id)
+    setRun(cancelled)
+  }
+
+  const retry = async () => {
+    if (!run) return
+    followRun(await api.retryAgentRun(run.id))
+  }
+
+  const eventLabel = (event: AgentEvent) => ({
+    'agent.started': '开始诊断',
+    'model.started': '模型正在规划',
+    'model.completed': '模型完成一步推理',
+    'tool.started': `正在调用 ${String(event.payload.tool_name || '工具')}`,
+    'tool.completed': `${String(event.payload.tool_name || '工具')} 已返回`,
+    'tool.failed': `${String(event.payload.tool_name || '工具')} 调用失败`,
+    'evidence.validated': '证据引用已校验',
+    'agent.completed': '诊断完成',
+    'agent.failed': '诊断失败',
+    'agent.cancelled': '运行已取消',
+  }[event.type] || event.type)
+
+  const terminal = run && ['completed', 'failed', 'cancelled', 'budget_exhausted'].includes(run.status)
+
+  return <Drawer anchor="right" open={open} onClose={onClose} PaperProps={{ className: 'chat-drawer' }}>
+    <header><div><AutoAwesomeRounded /><div><strong>Experiment Analyst</strong><span>有状态工具调用 · 证据校验</span></div></div><IconButton aria-label="关闭 Agent 面板" onClick={onClose}><CloseRounded /></IconButton></header>
+    <div className="chat-context"><span>当前上下文</span><Chip size="small" label={`${analysis.summary.run_count} runs`} /><Chip size="small" label={analysis.summary.primary_metric} />{run && <Chip size="small" color={run.status === 'completed' ? 'success' : run.status === 'failed' ? 'error' : 'default'} label={run.status} />}</div>
+    {run && <div className="agent-budget"><span>步骤 {run.step_count}/{run.max_steps}</span><span>Token {run.used_tokens}/{run.token_budget}</span><LinearProgress variant="determinate" value={Math.min(100, run.used_tokens / run.token_budget * 100)} /></div>}
+    <div className="messages">
+      {messages.map((message, index) => <div key={index} className={`message ${message.role}`}><span>{message.role === 'assistant' ? 'Agent' : '你'}</span><p>{message.text}</p>{message.refs && <EvidenceList refs={message.refs} />}</div>)}
+      {events.length > 0 && busy && <div className="agent-events">{events.filter((event) => event.type !== 'agent.created').slice(-8).map((event) => <div key={event.id} className={`agent-event ${event.type.includes('failed') ? 'failed' : ''}`}><span>{String(event.id).padStart(2, '0')}</span><p>{eventLabel(event)}</p></div>)}</div>}
+      {busy && <div className="message assistant typing"><span>Agent</span><p><i /><i /><i /></p></div>}
+    </div>
+    {!busy && !terminal && <div className="chat-suggestions"><button onClick={() => send('为什么均值更高但仍不建议直接采用？')}>均值更高为什么不直接采用？</button><button onClick={() => send('如果只能再跑三次实验，应该怎么安排？')}>只跑三次，怎么安排？</button></div>}
+    {busy && <div className="agent-actions"><Button size="small" color="error" variant="outlined" onClick={() => void cancel()}>取消运行</Button></div>}
+    {terminal && run.status !== 'completed' && <div className="agent-actions"><Button size="small" variant="outlined" onClick={() => void retry()}>重试本次诊断</Button></div>}
+    <div className="chat-input"><TextField fullWidth multiline maxRows={4} placeholder="让 Agent 调用工具诊断…" value={question} onChange={(event) => setQuestion(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); void send() } }} /><IconButton aria-label="发送问题" color="primary" disabled={!question.trim() || busy} onClick={() => send()}><ArrowForwardRounded /></IconButton></div>
+  </Drawer>
 }
 
 function EmptyProject({ project, onImport }: { project: Project; onImport: () => void }) {

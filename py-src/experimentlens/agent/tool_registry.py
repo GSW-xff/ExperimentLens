@@ -64,3 +64,15 @@ class ToolRegistry:
             }
             for tool in self._tools.values()
         ]
+
+    def model_tools(self) -> list[dict[str, Any]]:
+        """Return OpenAI Responses API function tool declarations."""
+        return [
+            {
+                "type": "function",
+                "name": tool.name,
+                "description": tool.description,
+                "parameters": tool.input_model.model_json_schema(),
+            }
+            for tool in self._tools.values()
+        ]

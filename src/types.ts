@@ -169,3 +169,38 @@ export interface RunRow {
   metric_key?: string | null
   params: Record<string, string>
 }
+
+export type AgentRunStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled' | 'budget_exhausted' | 'awaiting_approval'
+
+export interface AgentToolCall {
+  id: string
+  tool_name: string
+  status: string
+  arguments: Record<string, unknown>
+  output_summary?: string | null
+  error?: string | null
+}
+
+export interface AgentRun {
+  id: string
+  project_id: string
+  question: string
+  status: AgentRunStatus
+  max_steps: number
+  step_count: number
+  token_budget: number
+  used_tokens: number
+  model: string
+  tool_calls: AgentToolCall[]
+  evidence_refs: EvidenceRef[]
+  answer?: string | null
+  error?: string | null
+}
+
+export interface AgentEvent {
+  id: number
+  agent_run_id: string
+  type: string
+  created_at: string
+  payload: Record<string, unknown>
+}

@@ -1,4 +1,4 @@
-import type { Analysis, Project, RunRow, SchemaMapping } from './types'
+import type { AgentEvent, AgentRun, Analysis, Project, RunRow, SchemaMapping } from './types'
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, init)
@@ -38,6 +38,22 @@ export const api = {
     `/api/projects/${id}/chat`,
     { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question }) },
   ),
+  createAgentRun: (id: string, question: string) => request<AgentRun>(`/api/projects/${id}/agent-runs`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question }),
+  }),
+  getAgentRun: (id: string) => request<AgentRun>(`/api/agent-runs/${id}`),
+  getAgentEvents: (id: string, after = 0) => request<AgentEvent[]>(`/api/agent-runs/${id}/events?after=${after}`),
+  cancelAgentRun: (id: string) => request<AgentRun>(`/api/agent-runs/${id}/cancel`, { method: 'POST' }),
+  retryAgentRun: (id: string) => request<AgentRun>(`/api/agent-runs/${id}/retry`, { method: 'POST' }),
+  subscribeAgentRun: (id: string, onEvent: (event: AgentEvent) => void, onError: () => void) => {
+    const source = new EventSource(`/api/agent-runs/${id}/stream`)
+    const eventTypes = ['agent.created', 'agent.started', 'model.started', 'model.completed', 'tool.started', 'tool.completed', 'tool.failed', 'evidence.validated', 'agent.completed', 'agent.failed', 'agent.cancelled']
+    eventTypes.forEach((type) => source.addEventListener(type, (message) => {
+      onEvent(JSON.parse((message as MessageEvent).data) as AgentEvent)
+    }))
+    source.onerror = onError
+    return source
+  },
   report: (id: string) => request<{ markdown: string; filename: string }>(`/api/projects/${id}/reports/generate`, { method: 'POST' }),
   saveReport: (id: string, html: string) => request<{ saved: boolean }>(`/api/projects/${id}/reports/analysis-report`, {
     method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ html }),

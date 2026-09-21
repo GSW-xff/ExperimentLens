@@ -31,4 +31,15 @@ describe('ExperimentLens API client', () => {
     await api.getRuns('p1', 'latency p95')
     expect(fetchMock).toHaveBeenCalledWith('/api/projects/p1/runs?metric=latency%20p95', undefined)
   })
+
+  it('creates and cancels an agent run through typed endpoints', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({ id: 'ar_1', status: 'pending' }), { status: 202, headers: { 'Content-Type': 'application/json' } }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ id: 'ar_1', status: 'cancelled' }), { status: 200, headers: { 'Content-Type': 'application/json' } }))
+    await api.createAgentRun('p1', 'compare groups')
+    await api.cancelAgentRun('ar_1')
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/projects/p1/agent-runs')
+    expect(JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string)).toEqual({ question: 'compare groups' })
+    expect(fetchMock.mock.calls[1][0]).toBe('/api/agent-runs/ar_1/cancel')
+  })
 })

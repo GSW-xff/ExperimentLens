@@ -31,7 +31,17 @@ experimentlens
 
 ## 架构边界
 
-Flask API 按项目/导入与分析/报告拆为 Blueprint。业务用例位于 `py-src/experimentlens/services/`，只依赖 Repository 接口；默认 `LocalRepository` 完全兼容原 `.experimentlens/workspace`。Agent 基础层目前提供强类型领域模型、只读优先的 Tool Registry、Evidence Validator 和离线 Mock Model Gateway，尚未连接真实模型。
+Flask API 按项目/导入、分析/报告和 AgentRun 拆为 Blueprint。业务用例位于 `py-src/experimentlens/services/`，只依赖 Repository 接口；默认 `LocalRepository` 完全兼容原 `.experimentlens/workspace`。Agent Runtime 通过强类型只读工具访问当前项目，运行过程先持久化为 JSONL，再通过可续传 SSE 展示给前端，最终回答必须通过 Evidence Validator。
+
+默认使用确定性离线网关，不会访问外部模型。配置以下环境变量后，Agent 使用 OpenAI Responses API；用户问题和必要的结构化工具结果会发送给模型服务：
+
+```bash
+export OPENAI_API_KEY="..."
+export EXPERIMENTLENS_MODEL="gpt-5.6-luna"
+experimentlens
+```
+
+首批 Agent 工具为 `list_runs`、`compare_groups`、`search_logs` 和 `diff_configs`，全部强制限定到当前 project 且没有外部副作用。
 
 原始文件保存在 `.experimentlens/workspace/<project_id>/sources/original`，标准化表保存为 Parquet，分析结果和报告保存为结构化 JSON/Markdown。默认不上传外部服务，也不会修改或启动用户实验。
 

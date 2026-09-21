@@ -24,6 +24,7 @@ class AgentRunStatus(StrEnum):
     FAILED = "failed"
     CANCELLED = "cancelled"
     BUDGET_EXHAUSTED = "budget_exhausted"
+    AWAITING_APPROVAL = "awaiting_approval"
 
 
 class ToolCallStatus(StrEnum):
@@ -138,12 +139,24 @@ class AgentRun(BaseModel):
     max_steps: int = Field(default=8, ge=1, le=50)
     token_budget: int = Field(default=8000, ge=1)
     used_tokens: int = Field(default=0, ge=0)
+    step_count: int = Field(default=0, ge=0)
+    model: str = "deterministic-fallback"
     tool_calls: list[ToolCall] = Field(default_factory=list)
     evidence_refs: list[EvidenceRef] = Field(default_factory=list)
     answer: str | None = None
     error: str | None = None
     created_at: str = Field(default_factory=utc_now)
     updated_at: str = Field(default_factory=utc_now)
+    started_at: str | None = None
+    completed_at: str | None = None
+
+
+class AgentEvent(BaseModel):
+    id: int = Field(ge=1)
+    agent_run_id: str
+    type: str
+    created_at: str = Field(default_factory=utc_now)
+    payload: dict[str, Any] = Field(default_factory=dict)
 
 
 class TraceSpan(BaseModel):
