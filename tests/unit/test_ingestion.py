@@ -44,3 +44,25 @@ def test_rejects_unknown_file_type(tmp_path: Path):
         assert "不支持" in str(error)
     else:
         raise AssertionError("unknown type should be rejected")
+
+
+def test_infers_general_quality_resource_and_cost_metric_aliases():
+    cases = {
+        "iou": "maximize",
+        "mae": "minimize",
+        "rmse": "minimize",
+        "reward": "maximize",
+        "latency_p95": "minimize",
+        "throughput": "maximize",
+        "memory_gb": "minimize",
+        "cost_usd": "minimize",
+    }
+    for metric, direction in cases.items():
+        frame = pd.DataFrame({
+            "run_id": ["r1", "r2"],
+            "group": ["baseline", "candidate"],
+            metric: [1.0, 2.0],
+        })
+        mapping, _ = infer_mapping(frame)
+        assert mapping.primary_metric == metric
+        assert mapping.metric_direction == direction

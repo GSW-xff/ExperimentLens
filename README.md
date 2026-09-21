@@ -25,6 +25,12 @@ experimentlens
 - 配置：JSON、YAML
 - 日志：TXT、LOG、JSONL
 
+仓库中的样例同时覆盖图像分割、文本分类、时序预测、强化学习、Agent 评测和推理 Benchmark。确定性检测器通过 registry 运行，所有分析证据在输出前都会校验是否指向真实 run、指标、参数或日志。
+
+## 架构边界
+
+Flask API 按项目/导入与分析/报告拆为 Blueprint。业务用例位于 `py-src/experimentlens/services/`，只依赖 Repository 接口；默认 `LocalRepository` 完全兼容原 `.experimentlens/workspace`。Agent 基础层目前提供强类型领域模型、只读优先的 Tool Registry、Evidence Validator 和离线 Mock Model Gateway，尚未连接真实模型。
+
 原始文件保存在 `.experimentlens/workspace/<project_id>/sources/original`，标准化表保存为 Parquet，分析结果和报告保存为结构化 JSON/Markdown。默认不上传外部服务，也不会修改或启动用户实验。
 
 ## 验证

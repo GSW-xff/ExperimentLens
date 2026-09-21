@@ -5,6 +5,7 @@ from experimentlens.analysis import analyze
 from experimentlens.ingestion import infer_mapping, normalize, parse_file
 
 SAMPLE_DIR = Path(__file__).parents[1] / "examples" / "test-data"
+SNAPSHOT_DIR = Path(__file__).parent / "snapshots"
 
 
 def analyze_sample(filename: str):
@@ -59,10 +60,39 @@ def test_all_samples_follow_the_result_table_contract():
     required = {"run_id", "group", "seed", "status", "duration_seconds"}
     paths = sorted(SAMPLE_DIR.glob("*_results.csv"))
 
-    assert len(paths) == 3
+    assert len(paths) >= 6
     for path in paths:
         frame = pd.read_csv(path)
         assert required <= set(frame.columns)
         assert frame["run_id"].is_unique
         assert frame["group"].nunique() >= 2
         assert frame["seed"].notna().all()
+
+
+def test_new_experiment_types_are_inferred_with_domain_metrics():
+    expected = {
+        "reinforcement_learning_results.csv": ("reward", "maximize"),
+        "agent_evaluation_results.csv": ("task_accuracy", "maximize"),
+        "inference_benchmark_results.csv": ("throughput", "maximize"),
+    }
+
+    for filename, (metric, direction) in expected.items():
+        frame = pd.read_csv(SAMPLE_DIR / filename)
+        mapping, confidence = infer_mapping(frame)
+        assert mapping.primary_metric == metric
+        assert mapping.metric_direction == direction
+        assert confidence["primary_metric"] >= 0.9
+
+
+def test_original_sample_analysis_matches_frozen_snapshots():
+    import json
+
+    names = (
+        "polyp_segmentation",
+        "sentiment_classification",
+        "electricity_forecasting",
+    )
+    for name in names:
+        _, _, result = analyze_sample(f"{name}_results.csv")
+        expected = json.loads((SNAPSHOT_DIR / f"{name}.analysis.json").read_text(encoding="utf-8"))
+        assert result == expected

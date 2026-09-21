@@ -1,0 +1,374 @@
+{
+  "findings": [
+    {
+      "confidence": 0.99,
+      "description": "状态记录为 oom，该运行未参与主要指标比较。",
+      "detector": "rules.failed_run",
+      "detector_version": "1.0",
+      "evidence_refs": [
+        {
+          "detail": null,
+          "id": "polyp-segformer-37",
+          "kind": "run",
+          "label": "polyp-segformer-37 · oom"
+        }
+      ],
+      "id": "finding_failed_run_polyp-segformer-37",
+      "severity": "critical",
+      "title": "运行 polyp-segformer-37 未完成",
+      "type": "failed_run"
+    },
+    {
+      "confidence": 1.0,
+      "description": "主指标缺失、NaN 或 Inf，无法进入统计比较。",
+      "detector": "rules.invalid_metric",
+      "detector_version": "1.0",
+      "evidence_refs": [
+        {
+          "detail": null,
+          "id": "polyp-segformer-37:dice_f1",
+          "kind": "metric",
+          "label": "polyp-segformer-37 · dice_f1"
+        }
+      ],
+      "id": "finding_invalid_metric_polyp-segformer-37_dice_f1",
+      "severity": "critical",
+      "title": "polyp-segformer-37 的 dice_f1 无效",
+      "type": "invalid_metric"
+    },
+    {
+      "confidence": 0.88,
+      "description": "标准差 0.02608，约为 baseline 的 7.8 倍。",
+      "detector": "rules.seed_instability",
+      "detector_version": "1.0",
+      "evidence_refs": [
+        {
+          "detail": null,
+          "id": "polyp-segformer-11",
+          "kind": "run",
+          "label": "polyp-segformer-11"
+        },
+        {
+          "detail": null,
+          "id": "polyp-segformer-23",
+          "kind": "run",
+          "label": "polyp-segformer-23"
+        },
+        {
+          "detail": null,
+          "id": "polyp-segformer-41",
+          "kind": "run",
+          "label": "polyp-segformer-41"
+        },
+        {
+          "detail": null,
+          "id": "polyp-segformer-53",
+          "kind": "run",
+          "label": "polyp-segformer-53"
+        }
+      ],
+      "id": "finding_seed_instability_polyp-segformer-11",
+      "severity": "warning",
+      "title": "SegFormer-B2 的 seed 波动增大",
+      "type": "seed_instability"
+    }
+  ],
+  "hypotheses": [
+    {
+      "confidence": 0.56,
+      "contradicting_evidence": [],
+      "description": "资源峰值可能导致部分运行失败，并间接造成结果缺失或偏差。",
+      "id": "hyp_memory_pressure",
+      "status": "open",
+      "supporting_evidence": [
+        {
+          "detail": null,
+          "id": "polyp-segformer-37",
+          "kind": "run",
+          "label": "polyp-segformer-37 · oom"
+        }
+      ],
+      "uncertainties": [
+        "尚未获得逐步显存曲线",
+        "失败运行是否使用相同 batch size 尚待确认"
+      ],
+      "verification_plan": "固定数据、模型与 seed，仅降低 batch size 后复跑失败运行，并记录峰值显存。"
+    },
+    {
+      "confidence": 0.74,
+      "contradicting_evidence": [],
+      "description": "候选配置可能对随机初始化或数据顺序敏感，均值提升并不稳定。",
+      "id": "hyp_seed_sensitivity",
+      "status": "open",
+      "supporting_evidence": [
+        {
+          "detail": null,
+          "id": "polyp-segformer-11",
+          "kind": "run",
+          "label": "polyp-segformer-11"
+        },
+        {
+          "detail": null,
+          "id": "polyp-segformer-23",
+          "kind": "run",
+          "label": "polyp-segformer-23"
+        },
+        {
+          "detail": null,
+          "id": "polyp-segformer-41",
+          "kind": "run",
+          "label": "polyp-segformer-41"
+        },
+        {
+          "detail": null,
+          "id": "polyp-segformer-53",
+          "kind": "run",
+          "label": "polyp-segformer-53"
+        }
+      ],
+      "uncertainties": [
+        "当前 seed 数量较少",
+        "尚未分离初始化与采样顺序的影响"
+      ],
+      "verification_plan": "在完全相同配置下补充 3 个预先指定 seed，比较置信区间与最差分位数。"
+    },
+    {
+      "confidence": 0.82,
+      "contradicting_evidence": [],
+      "description": "训练过程可能存在数值不稳定，导致无效指标或异常终止。",
+      "id": "hyp_numerical_instability",
+      "status": "open",
+      "supporting_evidence": [
+        {
+          "detail": null,
+          "id": "polyp-segformer-37:dice_f1",
+          "kind": "metric",
+          "label": "polyp-segformer-37 · dice_f1"
+        }
+      ],
+      "uncertainties": [
+        "缺少梯度范数和 loss scale 轨迹"
+      ],
+      "verification_plan": "保持其余条件不变，启用梯度裁剪与数值监控，复跑同一 seed。"
+    }
+  ],
+  "proposals": [
+    {
+      "changed_variable": "batch_size",
+      "estimated_cost": "3 次运行",
+      "expected_observation": "固定数据、模型与 seed，仅降低 batch size 后复跑失败运行，并记录峰值显存。",
+      "fixed_conditions": [
+        "模型代码版本",
+        "数据划分",
+        "评估协议",
+        "主指标 dice_f1"
+      ],
+      "hypothesis_id": "hyp_memory_pressure",
+      "id": "proposal_1",
+      "interpretation": "若异常消失或组间差异显著收窄，则支持该假设；若结果保持不变，则优先转向其他解释。",
+      "priority": "P2",
+      "seeds": [
+        17,
+        29,
+        43
+      ],
+      "status": "proposed",
+      "title": "验证：资源峰值可能导致部分运行失败，并间接造成结果缺失或偏差"
+    },
+    {
+      "changed_variable": "seed",
+      "estimated_cost": "3 次运行",
+      "expected_observation": "在完全相同配置下补充 3 个预先指定 seed，比较置信区间与最差分位数。",
+      "fixed_conditions": [
+        "模型代码版本",
+        "数据划分",
+        "评估协议",
+        "主指标 dice_f1"
+      ],
+      "hypothesis_id": "hyp_seed_sensitivity",
+      "id": "proposal_2",
+      "interpretation": "若异常消失或组间差异显著收窄，则支持该假设；若结果保持不变，则优先转向其他解释。",
+      "priority": "P1",
+      "seeds": [
+        17,
+        29,
+        43
+      ],
+      "status": "proposed",
+      "title": "验证：候选配置可能对随机初始化或数据顺序敏感，均值提升并不稳定"
+    },
+    {
+      "changed_variable": "gradient_clipping",
+      "estimated_cost": "3 次运行",
+      "expected_observation": "保持其余条件不变，启用梯度裁剪与数值监控，复跑同一 seed。",
+      "fixed_conditions": [
+        "模型代码版本",
+        "数据划分",
+        "评估协议",
+        "主指标 dice_f1"
+      ],
+      "hypothesis_id": "hyp_numerical_instability",
+      "id": "proposal_3",
+      "interpretation": "若异常消失或组间差异显著收窄，则支持该假设；若结果保持不变，则优先转向其他解释。",
+      "priority": "P1",
+      "seeds": [
+        17,
+        29,
+        43
+      ],
+      "status": "proposed",
+      "title": "验证：训练过程可能存在数值不稳定，导致无效指标或异常终止"
+    }
+  ],
+  "summary": {
+    "baseline_group": "UNet Baseline",
+    "best_run": {
+      "group": "SegFormer-B2",
+      "run_id": "polyp-segformer-41",
+      "value": 0.856
+    },
+    "comparison": [
+      {
+        "baseline_group": "UNet Baseline",
+        "confidence_interval": [
+          -0.01763080156802993,
+          0.03383080156802992
+        ],
+        "effect_size": 0.4691979093845553,
+        "evidence_refs": [
+          "run:polyp-unet-11",
+          "run:polyp-unet-23",
+          "run:polyp-unet-37",
+          "run:polyp-unet-41",
+          "run:polyp-unet-53",
+          "run:polyp-segformer-11",
+          "run:polyp-segformer-23",
+          "run:polyp-segformer-37",
+          "run:polyp-segformer-41",
+          "run:polyp-segformer-53"
+        ],
+        "group": "SegFormer-B2",
+        "mean_delta": 0.008099999999999996,
+        "p_value_approx": 0.5372322793800812,
+        "relative_delta": 0.009837260140879276,
+        "sample_size": {
+          "baseline": 5,
+          "candidate": 4
+        },
+        "warnings": [
+          "sample_size_small"
+        ]
+      },
+      {
+        "baseline_group": "UNet Baseline",
+        "confidence_interval": [
+          0.019185938572741118,
+          0.026414061427258745
+        ],
+        "effect_size": 7.820335482498373,
+        "evidence_refs": [
+          "run:polyp-unet-11",
+          "run:polyp-unet-23",
+          "run:polyp-unet-37",
+          "run:polyp-unet-41",
+          "run:polyp-unet-53",
+          "run:polyp-unetpp-11",
+          "run:polyp-unetpp-23",
+          "run:polyp-unetpp-37",
+          "run:polyp-unetpp-41",
+          "run:polyp-unetpp-53"
+        ],
+        "group": "UNet++",
+        "mean_delta": 0.02279999999999993,
+        "p_value_approx": 0.0,
+        "relative_delta": 0.02769006558173419,
+        "sample_size": {
+          "baseline": 5,
+          "candidate": 5
+        },
+        "warnings": []
+      }
+    ],
+    "conclusion": "UNet++ 相对 UNet Baseline 的提升方向一致，置信区间未跨过 0；仍需结合样本量与异常项判断可复现性。",
+    "failed_runs": 1,
+    "findings_count": 3,
+    "group_count": 3,
+    "groups": [
+      {
+        "ci_high": 0.8570615362083998,
+        "ci_low": 0.8059384637916003,
+        "group": "SegFormer-B2",
+        "mean": 0.8315,
+        "mean_duration": 2054.8,
+        "median": 0.8315,
+        "n": 4,
+        "run_ids": [
+          "polyp-segformer-11",
+          "polyp-segformer-23",
+          "polyp-segformer-41",
+          "polyp-segformer-53"
+        ],
+        "std": 0.026083200212652806,
+        "values": [
+          0.852,
+          0.811,
+          0.856,
+          0.807
+        ]
+      },
+      {
+        "ci_high": 0.8263465260901611,
+        "ci_low": 0.8204534739098389,
+        "group": "UNet Baseline",
+        "mean": 0.8234,
+        "mean_duration": 1833.2,
+        "median": 0.824,
+        "n": 5,
+        "run_ids": [
+          "polyp-unet-11",
+          "polyp-unet-23",
+          "polyp-unet-37",
+          "polyp-unet-41",
+          "polyp-unet-53"
+        ],
+        "std": 0.0033615472627943252,
+        "values": [
+          0.821,
+          0.827,
+          0.824,
+          0.819,
+          0.826
+        ]
+      },
+      {
+        "ci_high": 0.8482927073373981,
+        "ci_low": 0.8441072926626018,
+        "group": "UNet++",
+        "mean": 0.8462,
+        "mean_duration": 2198.2,
+        "median": 0.846,
+        "n": 5,
+        "run_ids": [
+          "polyp-unetpp-11",
+          "polyp-unetpp-23",
+          "polyp-unetpp-37",
+          "polyp-unetpp-41",
+          "polyp-unetpp-53"
+        ],
+        "std": 0.0023874672772626663,
+        "values": [
+          0.845,
+          0.849,
+          0.846,
+          0.843,
+          0.848
+        ]
+      }
+    ],
+    "high_priority_findings": 3,
+    "metric_direction": "maximize",
+    "primary_metric": "dice_f1",
+    "run_count": 15,
+    "successful_runs": 14
+  }
+}

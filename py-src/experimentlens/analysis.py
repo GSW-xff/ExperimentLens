@@ -1,20 +1,18 @@
 from __future__ import annotations
 
 import math
-import re
 from statistics import NormalDist
 from typing import Any
 
 import numpy as np
 import pandas as pd
 
+from .detectors import run_detectors
 from .domain import EvidenceRef, ExperimentProposal, Finding, Hypothesis, SchemaMapping, Severity
+from .evidence_validator import EvidenceValidator
 
-ERROR_PATTERNS = {
-    "out_of_memory": re.compile(r"out of memory|\boom\b|cuda.*memory", re.IGNORECASE),
-    "numerical_error": re.compile(r"nan|inf|overflow|underflow|numerical", re.IGNORECASE),
-    "exception": re.compile(r"traceback|exception|error:|failed", re.IGNORECASE),
-}
+# Compatibility export for callers that imported the MVP detector entry point.
+detect_findings = run_detectors
 
 
 def analyze(
@@ -30,8 +28,9 @@ def analyze(
     data["group"] = data["group"].astype(str)
     groups = _group_statistics(data)
     comparison = _baseline_comparison(data, mapping)
-    findings = detect_findings(data, params, logs, mapping, groups)
+    findings = run_detectors(data, params, logs, mapping, groups)
     hypotheses = generate_hypotheses(findings, mapping)
+    EvidenceValidator(runs, metrics, params, logs).validate_analysis(findings, hypotheses)
     proposals = generate_proposals(hypotheses, mapping)
     valid = data["value"].dropna()
     best_row = None
@@ -128,94 +127,6 @@ def _baseline_comparison(data: pd.DataFrame, mapping: SchemaMapping) -> list[dic
             ],
         })
     return comparisons
-
-
-def detect_findings(
-    data: pd.DataFrame,
-    params: pd.DataFrame,
-    logs: list[dict[str, Any]],
-    mapping: SchemaMapping,
-    groups: list[dict[str, Any]],
-) -> list[Finding]:
-    findings: list[Finding] = []
-    failed = data[data["status"].astype(str).str.lower().isin({"failed", "error", "crashed", "oom"})]
-    for _, row in failed.iterrows():
-        findings.append(_finding(
-            "failed_run", Severity.CRITICAL, f"运行 {row.run_id} 未完成",
-            f"状态记录为 {row.status}，该运行未参与主要指标比较。",
-            [_evidence("run", str(row.run_id), f"{row.run_id} · {row.status}")], 0.99,
-        ))
-    invalid = data[data["value"].isna() | ~np.isfinite(pd.to_numeric(data["value"], errors="coerce"))]
-    for _, row in invalid.iterrows():
-        findings.append(_finding(
-            "invalid_metric", Severity.CRITICAL, f"{row.run_id} 的 {mapping.primary_metric} 无效",
-            "主指标缺失、NaN 或 Inf，无法进入统计比较。",
-            [_evidence("metric", f"{row.run_id}:{mapping.primary_metric}", f"{row.run_id} · {mapping.primary_metric}")], 1.0,
-        ))
-
-    duplicated = data[data["run_id"].duplicated(keep=False)]
-    for run_id in duplicated["run_id"].astype(str).unique():
-        findings.append(_finding(
-            "duplicate_run", Severity.WARNING, f"检测到重复运行 {run_id}",
-            "同一 run ID 出现多次，可能会让汇总结果被重复计权。",
-            [_evidence("run", run_id, run_id)], 1.0,
-        ))
-
-    for group, frame in data.groupby("group"):
-        valid = frame["value"].dropna().astype(float)
-        if len(valid) >= 4:
-            median = float(valid.median())
-            mad = float(np.median(np.abs(valid - median)))
-            if mad > 0:
-                robust_z = 0.6745 * (valid - median) / mad
-                for index in robust_z[robust_z.abs() > 3.5].index:
-                    row = data.loc[index]
-                    findings.append(_finding(
-                        "metric_outlier", Severity.WARNING, f"{row.run_id} 是组内离群点",
-                        f"{mapping.primary_metric}={row.value:.4g}，明显偏离 {group} 组的中位数 {median:.4g}。",
-                        [_evidence("metric", f"{row.run_id}:{mapping.primary_metric}", f"{row.run_id} · {mapping.primary_metric}={row.value:.4g}")], 0.92,
-                    ))
-
-    baseline_std = next((item["std"] for item in groups if item["group"] == mapping.baseline_group), None)
-    for item in groups:
-        if item["n"] >= 3 and item["std"] and baseline_std and item["std"] > baseline_std * 1.8:
-            findings.append(_finding(
-                "seed_instability", Severity.WARNING, f"{item['group']} 的 seed 波动增大",
-                f"标准差 {item['std']:.4g}，约为 baseline 的 {item['std'] / baseline_std:.1f} 倍。",
-                [_evidence("run", run_id, run_id) for run_id in item["run_ids"]], 0.88,
-            ))
-
-    if "seed" in data and data["seed"].isna().any():
-        rows = data[data["seed"].isna()]
-        findings.append(_finding(
-            "missing_seed", Severity.INFO, "部分运行缺少 seed",
-            f"{len(rows)} 个运行没有 seed，复现实验和稳定性解释会受到限制。",
-            [_evidence("run", str(run_id), str(run_id)) for run_id in rows["run_id"].head(5)], 1.0,
-        ))
-
-    grouped_params = params.groupby("key")["value"].nunique() if not params.empty else pd.Series(dtype=int)
-    if "dataset_version" in grouped_params and grouped_params["dataset_version"] > 1:
-        relevant = params[params["key"] == "dataset_version"]
-        findings.append(_finding(
-            "dataset_drift", Severity.WARNING, "实验使用了不同的数据版本",
-            "dataset_version 在运行之间不一致，对比可能混入数据差异。",
-            [_evidence("param", f"{row.run_id}:dataset_version", f"{row.run_id} · {row.value}") for row in relevant.itertuples()], 0.98,
-        ))
-
-    for record in logs:
-        text = str(record.get("text", ""))
-        for kind, pattern in ERROR_PATTERNS.items():
-            if pattern.search(text):
-                severity = Severity.CRITICAL if kind in {"out_of_memory", "numerical_error"} else Severity.WARNING
-                source = record.get("source", "log")
-                line = record.get("line", "?")
-                findings.append(_finding(
-                    f"log_{kind}", severity, _log_title(kind),
-                    text[:240],
-                    [_evidence("log", f"{source}:{line}", f"{source} 第 {line} 行", text[:300])], 0.95,
-                ))
-                break
-    return _deduplicate_findings(findings)
 
 
 def generate_hypotheses(findings: list[Finding], mapping: SchemaMapping) -> list[Hypothesis]:
@@ -344,15 +255,6 @@ def answer_question(question: str, result: dict[str, Any]) -> dict[str, Any]:
     return {"answer": text, "evidence_refs": refs, "basis": "deterministic_analysis"}
 
 
-def _finding(kind: str, severity: Severity, title: str, description: str, evidence: list[EvidenceRef], confidence: float) -> Finding:
-    suffix = evidence[0].id.replace(":", "_") if evidence else str(abs(hash(title)))
-    return Finding(id=f"finding_{kind}_{suffix}", type=kind, severity=severity, title=title, description=description, evidence_refs=evidence, detector=f"rules.{kind}", confidence=confidence)
-
-
-def _evidence(kind: str, identifier: str, label: str, detail: str | None = None) -> EvidenceRef:
-    return EvidenceRef(id=identifier, kind=kind, label=label, detail=detail)
-
-
 def _collect_evidence(findings: list[Finding]) -> list[EvidenceRef]:
     seen = set()
     result = []
@@ -363,25 +265,6 @@ def _collect_evidence(findings: list[Finding]) -> list[EvidenceRef]:
                 seen.add(key)
                 result.append(ref)
     return result[:10]
-
-
-def _deduplicate_findings(findings: list[Finding]) -> list[Finding]:
-    result = []
-    seen = set()
-    for finding in findings:
-        key = (finding.type, tuple(ref.id for ref in finding.evidence_refs))
-        if key not in seen:
-            seen.add(key)
-            result.append(finding)
-    return result
-
-
-def _log_title(kind: str) -> str:
-    return {
-        "out_of_memory": "日志中发现显存不足",
-        "numerical_error": "日志中发现数值异常",
-        "exception": "日志中发现运行异常",
-    }[kind]
 
 
 def _safe_mean(series: Any) -> float | None:

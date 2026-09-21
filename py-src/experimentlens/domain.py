@@ -17,6 +17,28 @@ class Severity(StrEnum):
     INFO = "info"
 
 
+class AgentRunStatus(StrEnum):
+    PENDING = "pending"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+    BUDGET_EXHAUSTED = "budget_exhausted"
+
+
+class ToolCallStatus(StrEnum):
+    PENDING = "pending"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    REJECTED = "rejected"
+
+
+class SpanStatus(StrEnum):
+    OK = "ok"
+    ERROR = "error"
+
+
 class EvidenceRef(BaseModel):
     id: str
     kind: str
@@ -59,6 +81,60 @@ class ExperimentProposal(BaseModel):
     priority: str
     estimated_cost: str
     status: str = "proposed"
+
+
+class ToolCall(BaseModel):
+    id: str
+    agent_run_id: str
+    tool_name: str
+    arguments: dict[str, Any] = Field(default_factory=dict)
+    status: ToolCallStatus = ToolCallStatus.PENDING
+    read_only: bool = True
+    requires_approval: bool = False
+    output_summary: str | None = None
+    error: str | None = None
+    created_at: str = Field(default_factory=utc_now)
+
+
+class AgentRun(BaseModel):
+    id: str
+    project_id: str
+    question: str
+    status: AgentRunStatus = AgentRunStatus.PENDING
+    max_steps: int = Field(default=8, ge=1, le=50)
+    token_budget: int = Field(default=8000, ge=1)
+    used_tokens: int = Field(default=0, ge=0)
+    tool_calls: list[ToolCall] = Field(default_factory=list)
+    evidence_refs: list[EvidenceRef] = Field(default_factory=list)
+    answer: str | None = None
+    error: str | None = None
+    created_at: str = Field(default_factory=utc_now)
+    updated_at: str = Field(default_factory=utc_now)
+
+
+class TraceSpan(BaseModel):
+    id: str
+    trace_id: str
+    parent_span_id: str | None = None
+    name: str
+    status: SpanStatus = SpanStatus.OK
+    started_at: str = Field(default_factory=utc_now)
+    ended_at: str | None = None
+    duration_ms: float | None = Field(default=None, ge=0)
+    input_digest: str | None = None
+    output_digest: str | None = None
+    attributes: dict[str, Any] = Field(default_factory=dict)
+    error_category: str | None = None
+
+
+class EvaluationCase(BaseModel):
+    id: str
+    project_fixture: str
+    question: str
+    expected_findings: list[str] = Field(default_factory=list)
+    allowed_hypotheses: list[str] = Field(default_factory=list)
+    forbidden_behaviors: list[str] = Field(default_factory=list)
+    tags: list[str] = Field(default_factory=list)
 
 
 class SchemaMapping(BaseModel):

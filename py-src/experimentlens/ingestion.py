@@ -29,6 +29,14 @@ METRIC_HINTS = (
     "bleu",
     "rouge",
     "perplexity",
+    "iou",
+    "mae",
+    "rmse",
+    "reward",
+    "latency",
+    "throughput",
+    "memory",
+    "cost",
 )
 SUPPORTED_EXTENSIONS = {".csv", ".tsv", ".xlsx", ".xls", ".json", ".jsonl", ".yaml", ".yml", ".txt", ".log"}
 
@@ -163,7 +171,14 @@ def infer_mapping(frame: pd.DataFrame) -> tuple[SchemaMapping, dict[str, float]]
 
     groups = [str(value) for value in frame[group_column].dropna().unique()]
     baseline = next((value for value in groups if "base" in value.lower() or value.lower() in {"a", "control"}), groups[0])
-    direction = "minimize" if any(word in primary.lower() for word in ("loss", "error", "perplexity", "latency")) else "maximize"
+    direction = (
+        "minimize"
+        if any(
+            word in primary.lower()
+            for word in ("loss", "error", "mae", "rmse", "perplexity", "latency", "memory", "cost")
+        )
+        else "maximize"
+    )
     structural = set(filter(None, [run_column, group_column, choose(SEED_ALIASES), choose(STATUS_ALIASES), choose(DURATION_ALIASES)]))
     parameter_columns = [column for column in columns if column not in structural and column not in metric_columns]
     mapping = SchemaMapping(

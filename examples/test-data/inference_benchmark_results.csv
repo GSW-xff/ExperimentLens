@@ -1,0 +1,7 @@
+run_id,group,seed,status,throughput,latency_p95,memory_gb,error_rate,duration_seconds,batch_size,runtime_version,model_version
+infer-base-11,FP16 Baseline,11,completed,118.2,42.8,13.6,0.001,620,8,trt-10.0,encoder-v4
+infer-base-23,FP16 Baseline,23,completed,117.5,43.1,13.7,0.001,626,8,trt-10.0,encoder-v4
+infer-base-37,FP16 Baseline,37,completed,119.0,42.5,13.6,0.002,615,8,trt-10.0,encoder-v4
+infer-int8-11,INT8,11,completed,151.4,31.2,9.4,0.003,488,8,trt-10.0,encoder-v4
+infer-int8-23,INT8,23,completed,149.8,31.8,9.5,0.002,495,8,trt-10.0,encoder-v4
+infer-int8-37,INT8,37,completed,152.1,30.9,9.4,0.003,482,8,trt-10.0,encoder-v4

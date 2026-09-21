@@ -1,0 +1,238 @@
+{
+  "findings": [
+    {
+      "confidence": 0.92,
+      "description": "accuracy=0.962，明显偏离 LoRA Rank 8 组的中位数 0.901。",
+      "detector": "rules.metric_outlier",
+      "detector_version": "1.0",
+      "evidence_refs": [
+        {
+          "detail": null,
+          "id": "sent-lora-53:accuracy",
+          "kind": "metric",
+          "label": "sent-lora-53 · accuracy=0.962"
+        }
+      ],
+      "id": "finding_metric_outlier_sent-lora-53_accuracy",
+      "severity": "warning",
+      "title": "sent-lora-53 是组内离群点",
+      "type": "metric_outlier"
+    },
+    {
+      "confidence": 0.88,
+      "description": "标准差 0.02777，约为 baseline 的 12.4 倍。",
+      "detector": "rules.seed_instability",
+      "detector_version": "1.0",
+      "evidence_refs": [
+        {
+          "detail": null,
+          "id": "sent-lora-11",
+          "kind": "run",
+          "label": "sent-lora-11"
+        },
+        {
+          "detail": null,
+          "id": "sent-lora-23",
+          "kind": "run",
+          "label": "sent-lora-23"
+        },
+        {
+          "detail": null,
+          "id": "sent-lora-37",
+          "kind": "run",
+          "label": "sent-lora-37"
+        },
+        {
+          "detail": null,
+          "id": "sent-lora-41",
+          "kind": "run",
+          "label": "sent-lora-41"
+        },
+        {
+          "detail": null,
+          "id": "sent-lora-53",
+          "kind": "run",
+          "label": "sent-lora-53"
+        }
+      ],
+      "id": "finding_seed_instability_sent-lora-11",
+      "severity": "warning",
+      "title": "LoRA Rank 8 的 seed 波动增大",
+      "type": "seed_instability"
+    }
+  ],
+  "hypotheses": [
+    {
+      "confidence": 0.74,
+      "contradicting_evidence": [],
+      "description": "候选配置可能对随机初始化或数据顺序敏感，均值提升并不稳定。",
+      "id": "hyp_seed_sensitivity",
+      "status": "open",
+      "supporting_evidence": [
+        {
+          "detail": null,
+          "id": "sent-lora-53:accuracy",
+          "kind": "metric",
+          "label": "sent-lora-53 · accuracy=0.962"
+        },
+        {
+          "detail": null,
+          "id": "sent-lora-11",
+          "kind": "run",
+          "label": "sent-lora-11"
+        },
+        {
+          "detail": null,
+          "id": "sent-lora-23",
+          "kind": "run",
+          "label": "sent-lora-23"
+        },
+        {
+          "detail": null,
+          "id": "sent-lora-37",
+          "kind": "run",
+          "label": "sent-lora-37"
+        },
+        {
+          "detail": null,
+          "id": "sent-lora-41",
+          "kind": "run",
+          "label": "sent-lora-41"
+        },
+        {
+          "detail": null,
+          "id": "sent-lora-53",
+          "kind": "run",
+          "label": "sent-lora-53"
+        }
+      ],
+      "uncertainties": [
+        "当前 seed 数量较少",
+        "尚未分离初始化与采样顺序的影响"
+      ],
+      "verification_plan": "在完全相同配置下补充 3 个预先指定 seed，比较置信区间与最差分位数。"
+    }
+  ],
+  "proposals": [
+    {
+      "changed_variable": "seed",
+      "estimated_cost": "3 次运行",
+      "expected_observation": "在完全相同配置下补充 3 个预先指定 seed，比较置信区间与最差分位数。",
+      "fixed_conditions": [
+        "模型代码版本",
+        "数据划分",
+        "评估协议",
+        "主指标 accuracy"
+      ],
+      "hypothesis_id": "hyp_seed_sensitivity",
+      "id": "proposal_1",
+      "interpretation": "若异常消失或组间差异显著收窄，则支持该假设；若结果保持不变，则优先转向其他解释。",
+      "priority": "P1",
+      "seeds": [
+        17,
+        29,
+        43
+      ],
+      "status": "proposed",
+      "title": "验证：候选配置可能对随机初始化或数据顺序敏感，均值提升并不稳定"
+    }
+  ],
+  "summary": {
+    "baseline_group": "RoBERTa Baseline",
+    "best_run": {
+      "group": "LoRA Rank 8",
+      "run_id": "sent-lora-53",
+      "value": 0.962
+    },
+    "comparison": [
+      {
+        "baseline_group": "RoBERTa Baseline",
+        "confidence_interval": [
+          -0.014022260665220772,
+          0.03482226066522115
+        ],
+        "effect_size": 0.527877977460693,
+        "evidence_refs": [
+          "run:sent-roberta-11",
+          "run:sent-roberta-23",
+          "run:sent-roberta-37",
+          "run:sent-roberta-41",
+          "run:sent-roberta-53",
+          "run:sent-lora-11",
+          "run:sent-lora-23",
+          "run:sent-lora-37",
+          "run:sent-lora-41",
+          "run:sent-lora-53"
+        ],
+        "group": "LoRA Rank 8",
+        "mean_delta": 0.010400000000000187,
+        "p_value_approx": 0.4039157206401969,
+        "relative_delta": 0.011529933481153202,
+        "sample_size": {
+          "baseline": 5,
+          "candidate": 5
+        },
+        "warnings": []
+      }
+    ],
+    "conclusion": "LoRA Rank 8 的均值优于 RoBERTa Baseline，但置信区间跨过 0，当前证据不足以确认稳定提升。",
+    "failed_runs": 0,
+    "findings_count": 2,
+    "group_count": 2,
+    "groups": [
+      {
+        "ci_high": 0.9367434840563138,
+        "ci_low": 0.8880565159436864,
+        "group": "LoRA Rank 8",
+        "mean": 0.9124000000000001,
+        "mean_duration": 982.6,
+        "median": 0.901,
+        "n": 5,
+        "run_ids": [
+          "sent-lora-11",
+          "sent-lora-23",
+          "sent-lora-37",
+          "sent-lora-41",
+          "sent-lora-53"
+        ],
+        "std": 0.027772288346479455,
+        "values": [
+          0.898,
+          0.901,
+          0.899,
+          0.902,
+          0.962
+        ]
+      },
+      {
+        "ci_high": 0.9039599999999999,
+        "ci_low": 0.90004,
+        "group": "RoBERTa Baseline",
+        "mean": 0.9019999999999999,
+        "mean_duration": 1432.4,
+        "median": 0.902,
+        "n": 5,
+        "run_ids": [
+          "sent-roberta-11",
+          "sent-roberta-23",
+          "sent-roberta-37",
+          "sent-roberta-41",
+          "sent-roberta-53"
+        ],
+        "std": 0.0022360679774997916,
+        "values": [
+          0.902,
+          0.905,
+          0.899,
+          0.903,
+          0.901
+        ]
+      }
+    ],
+    "high_priority_findings": 2,
+    "metric_direction": "maximize",
+    "primary_metric": "accuracy",
+    "run_count": 10,
+    "successful_runs": 10
+  }
+}

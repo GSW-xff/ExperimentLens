@@ -1,0 +1,356 @@
+{
+  "findings": [
+    {
+      "confidence": 0.98,
+      "description": "dataset_version 在运行之间不一致，对比可能混入数据差异。",
+      "detector": "rules.dataset_drift",
+      "detector_version": "1.0",
+      "evidence_refs": [
+        {
+          "detail": null,
+          "id": "load-lstm-11:dataset_version",
+          "kind": "param",
+          "label": "load-lstm-11 · electricity-v1"
+        },
+        {
+          "detail": null,
+          "id": "load-lstm-23:dataset_version",
+          "kind": "param",
+          "label": "load-lstm-23 · electricity-v1"
+        },
+        {
+          "detail": null,
+          "id": "load-lstm-37:dataset_version",
+          "kind": "param",
+          "label": "load-lstm-37 · electricity-v1"
+        },
+        {
+          "detail": null,
+          "id": "load-lstm-41:dataset_version",
+          "kind": "param",
+          "label": "load-lstm-41 · electricity-v1"
+        },
+        {
+          "detail": null,
+          "id": "load-lstm-53:dataset_version",
+          "kind": "param",
+          "label": "load-lstm-53 · electricity-v1"
+        },
+        {
+          "detail": null,
+          "id": "load-patchtst-11:dataset_version",
+          "kind": "param",
+          "label": "load-patchtst-11 · electricity-v1"
+        },
+        {
+          "detail": null,
+          "id": "load-patchtst-23:dataset_version",
+          "kind": "param",
+          "label": "load-patchtst-23 · electricity-v1"
+        },
+        {
+          "detail": null,
+          "id": "load-patchtst-37:dataset_version",
+          "kind": "param",
+          "label": "load-patchtst-37 · electricity-v1"
+        },
+        {
+          "detail": null,
+          "id": "load-patchtst-41:dataset_version",
+          "kind": "param",
+          "label": "load-patchtst-41 · electricity-v1"
+        },
+        {
+          "detail": null,
+          "id": "load-patchtst-53:dataset_version",
+          "kind": "param",
+          "label": "load-patchtst-53 · electricity-v1"
+        },
+        {
+          "detail": null,
+          "id": "load-patchtst-v2-11:dataset_version",
+          "kind": "param",
+          "label": "load-patchtst-v2-11 · electricity-v2"
+        },
+        {
+          "detail": null,
+          "id": "load-patchtst-v2-23:dataset_version",
+          "kind": "param",
+          "label": "load-patchtst-v2-23 · electricity-v2"
+        },
+        {
+          "detail": null,
+          "id": "load-patchtst-v2-37:dataset_version",
+          "kind": "param",
+          "label": "load-patchtst-v2-37 · electricity-v2"
+        },
+        {
+          "detail": null,
+          "id": "load-patchtst-v2-41:dataset_version",
+          "kind": "param",
+          "label": "load-patchtst-v2-41 · electricity-v2"
+        },
+        {
+          "detail": null,
+          "id": "load-patchtst-v2-53:dataset_version",
+          "kind": "param",
+          "label": "load-patchtst-v2-53 · electricity-v2"
+        }
+      ],
+      "id": "finding_dataset_drift_load-lstm-11_dataset_version",
+      "severity": "warning",
+      "title": "实验使用了不同的数据版本",
+      "type": "dataset_drift"
+    }
+  ],
+  "hypotheses": [
+    {
+      "confidence": 0.86,
+      "contradicting_evidence": [],
+      "description": "观察到的组间差异可能部分来自数据版本不一致，而非配置本身。",
+      "id": "hyp_dataset_mismatch",
+      "status": "open",
+      "supporting_evidence": [
+        {
+          "detail": null,
+          "id": "load-lstm-11:dataset_version",
+          "kind": "param",
+          "label": "load-lstm-11 · electricity-v1"
+        },
+        {
+          "detail": null,
+          "id": "load-lstm-23:dataset_version",
+          "kind": "param",
+          "label": "load-lstm-23 · electricity-v1"
+        },
+        {
+          "detail": null,
+          "id": "load-lstm-37:dataset_version",
+          "kind": "param",
+          "label": "load-lstm-37 · electricity-v1"
+        },
+        {
+          "detail": null,
+          "id": "load-lstm-41:dataset_version",
+          "kind": "param",
+          "label": "load-lstm-41 · electricity-v1"
+        },
+        {
+          "detail": null,
+          "id": "load-lstm-53:dataset_version",
+          "kind": "param",
+          "label": "load-lstm-53 · electricity-v1"
+        },
+        {
+          "detail": null,
+          "id": "load-patchtst-11:dataset_version",
+          "kind": "param",
+          "label": "load-patchtst-11 · electricity-v1"
+        },
+        {
+          "detail": null,
+          "id": "load-patchtst-23:dataset_version",
+          "kind": "param",
+          "label": "load-patchtst-23 · electricity-v1"
+        },
+        {
+          "detail": null,
+          "id": "load-patchtst-37:dataset_version",
+          "kind": "param",
+          "label": "load-patchtst-37 · electricity-v1"
+        },
+        {
+          "detail": null,
+          "id": "load-patchtst-41:dataset_version",
+          "kind": "param",
+          "label": "load-patchtst-41 · electricity-v1"
+        },
+        {
+          "detail": null,
+          "id": "load-patchtst-53:dataset_version",
+          "kind": "param",
+          "label": "load-patchtst-53 · electricity-v1"
+        }
+      ],
+      "uncertainties": [
+        "尚未核对数据内容哈希"
+      ],
+      "verification_plan": "将 baseline 与候选配置都固定到同一数据版本，使用同一组 seed 进行配对复跑。"
+    }
+  ],
+  "proposals": [
+    {
+      "changed_variable": "dataset_version",
+      "estimated_cost": "3 次运行",
+      "expected_observation": "将 baseline 与候选配置都固定到同一数据版本，使用同一组 seed 进行配对复跑。",
+      "fixed_conditions": [
+        "模型代码版本",
+        "数据划分",
+        "评估协议",
+        "主指标 loss"
+      ],
+      "hypothesis_id": "hyp_dataset_mismatch",
+      "id": "proposal_1",
+      "interpretation": "若异常消失或组间差异显著收窄，则支持该假设；若结果保持不变，则优先转向其他解释。",
+      "priority": "P1",
+      "seeds": [
+        17,
+        29,
+        43
+      ],
+      "status": "proposed",
+      "title": "验证：观察到的组间差异可能部分来自数据版本不一致，而非配置本身"
+    }
+  ],
+  "summary": {
+    "baseline_group": "LSTM Baseline",
+    "best_run": {
+      "group": "PatchTST MixedData",
+      "run_id": "load-patchtst-v2-37",
+      "value": 0.063
+    },
+    "comparison": [
+      {
+        "baseline_group": "LSTM Baseline",
+        "confidence_interval": [
+          -0.014960000000000006,
+          -0.011040000000000017
+        ],
+        "effect_size": -8.221921916437815,
+        "evidence_refs": [
+          "run:load-lstm-11",
+          "run:load-lstm-23",
+          "run:load-lstm-37",
+          "run:load-lstm-41",
+          "run:load-lstm-53",
+          "run:load-patchtst-11",
+          "run:load-patchtst-23",
+          "run:load-patchtst-37",
+          "run:load-patchtst-41",
+          "run:load-patchtst-53"
+        ],
+        "group": "PatchTST",
+        "mean_delta": -0.013000000000000012,
+        "p_value_approx": 0.0,
+        "relative_delta": -0.15294117647058836,
+        "sample_size": {
+          "baseline": 5,
+          "candidate": 5
+        },
+        "warnings": []
+      },
+      {
+        "baseline_group": "LSTM Baseline",
+        "confidence_interval": [
+          -0.02230868838586795,
+          -0.018891311614132066
+        ],
+        "effect_size": -14.944810752266275,
+        "evidence_refs": [
+          "run:load-lstm-11",
+          "run:load-lstm-23",
+          "run:load-lstm-37",
+          "run:load-lstm-41",
+          "run:load-lstm-53",
+          "run:load-patchtst-v2-11",
+          "run:load-patchtst-v2-23",
+          "run:load-patchtst-v2-37",
+          "run:load-patchtst-v2-41",
+          "run:load-patchtst-v2-53"
+        ],
+        "group": "PatchTST MixedData",
+        "mean_delta": -0.020600000000000007,
+        "p_value_approx": 0.0,
+        "relative_delta": -0.24235294117647066,
+        "sample_size": {
+          "baseline": 5,
+          "candidate": 5
+        },
+        "warnings": []
+      }
+    ],
+    "conclusion": "PatchTST MixedData 相对 LSTM Baseline 的提升方向一致，置信区间未跨过 0；仍需结合样本量与异常项判断可复现性。",
+    "failed_runs": 0,
+    "findings_count": 1,
+    "group_count": 3,
+    "groups": [
+      {
+        "ci_high": 0.08638592929112564,
+        "ci_low": 0.08361407070887437,
+        "group": "LSTM Baseline",
+        "mean": 0.085,
+        "mean_duration": 1261.2,
+        "median": 0.085,
+        "n": 5,
+        "run_ids": [
+          "load-lstm-11",
+          "load-lstm-23",
+          "load-lstm-37",
+          "load-lstm-41",
+          "load-lstm-53"
+        ],
+        "std": 0.0015811388300841845,
+        "values": [
+          0.084,
+          0.086,
+          0.083,
+          0.085,
+          0.087
+        ]
+      },
+      {
+        "ci_high": 0.07338592929112563,
+        "ci_low": 0.07061407070887436,
+        "group": "PatchTST",
+        "mean": 0.072,
+        "mean_duration": 1547.8,
+        "median": 0.072,
+        "n": 5,
+        "run_ids": [
+          "load-patchtst-11",
+          "load-patchtst-23",
+          "load-patchtst-37",
+          "load-patchtst-41",
+          "load-patchtst-53"
+        ],
+        "std": 0.0015811388300841867,
+        "values": [
+          0.071,
+          0.073,
+          0.07,
+          0.072,
+          0.074
+        ]
+      },
+      {
+        "ci_high": 0.06539940782466419,
+        "ci_low": 0.06340059217533581,
+        "group": "PatchTST MixedData",
+        "mean": 0.0644,
+        "mean_duration": 1587.6,
+        "median": 0.064,
+        "n": 5,
+        "run_ids": [
+          "load-patchtst-v2-11",
+          "load-patchtst-v2-23",
+          "load-patchtst-v2-37",
+          "load-patchtst-v2-41",
+          "load-patchtst-v2-53"
+        ],
+        "std": 0.001140175425099139,
+        "values": [
+          0.064,
+          0.065,
+          0.063,
+          0.066,
+          0.064
+        ]
+      }
+    ],
+    "high_priority_findings": 1,
+    "metric_direction": "minimize",
+    "primary_metric": "loss",
+    "run_count": 15,
+    "successful_runs": 15
+  }
+}

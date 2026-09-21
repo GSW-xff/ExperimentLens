@@ -1,0 +1,7 @@
+run_id,group,seed,status,reward,success_rate,episode_length,duration_seconds,learning_rate,environment_version,code_version
+ppo-base-11,PPO Baseline,11,completed,182.4,0.72,418,1640,0.0003,walker-v2,rl-1.0.0
+ppo-base-23,PPO Baseline,23,completed,179.8,0.70,426,1628,0.0003,walker-v2,rl-1.0.0
+ppo-base-37,PPO Baseline,37,completed,184.1,0.73,411,1652,0.0003,walker-v2,rl-1.0.0
+ppo-clip-11,PPO Clip 0.1,11,completed,196.5,0.79,389,1710,0.0003,walker-v2,rl-1.0.0
+ppo-clip-23,PPO Clip 0.1,23,completed,192.7,0.77,397,1698,0.0003,walker-v2,rl-1.0.0
+ppo-clip-37,PPO Clip 0.1,37,completed,198.2,0.80,382,1722,0.0003,walker-v2,rl-1.0.0
