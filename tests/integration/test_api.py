@@ -64,3 +64,23 @@ def test_demo_project_is_ready_to_explore(tmp_path):
     analysis = client.get(f"/api/projects/{project['id']}/analysis").get_json()
     assert analysis["summary"]["run_count"] == 9
     assert analysis["hypotheses"]
+
+
+def test_legacy_analysis_summary_is_recomputed_after_schema_migration(tmp_path):
+    app = create_app({"TESTING": True, "WORKSPACE_ROOT": tmp_path / "workspace"})
+    client = app.test_client()
+    project = client.post("/api/projects/demo").get_json()
+    workspace = app.extensions["experimentlens_workspace"]
+    legacy_summary = workspace.read_json(project["id"], "analysis/summary.json")
+    legacy_summary.pop("metric_definitions")
+    legacy_summary.pop("metric_summaries")
+    legacy_summary.pop("constraints")
+    workspace.write_json(project["id"], "analysis/summary.json", legacy_summary)
+
+    response = client.get(f"/api/projects/{project['id']}/analysis")
+
+    assert response.status_code == 200
+    summary = response.get_json()["summary"]
+    assert summary["metric_definitions"]
+    assert summary["metric_summaries"]
+    assert "constraints" in summary

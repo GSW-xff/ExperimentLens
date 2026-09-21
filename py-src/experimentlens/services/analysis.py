@@ -31,7 +31,7 @@ class AnalysisService:
 
     def get_analysis(self, project_id: str) -> dict[str, Any]:
         summary = self.repository.read_json(project_id, "analysis/summary.json")
-        if summary is None:
+        if summary is None or "metric_definitions" not in summary:
             return self.run_analysis(project_id)
         return {
             "summary": summary,
