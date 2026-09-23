@@ -6,6 +6,8 @@ ExperimentLens 是面向机器学习与数据科学实验的本地优先分析�
 
 后续 Agent Runtime、SSE、Trace、评测、MLflow 和实验回流的实施顺序，参见 [后续阶段修改扩充实施方案](docs/next-stage-implementation-plan.md)。
 
+面向腾讯、字节跳动等大厂面试的服务化、持久化工作流、可观测性、评测、安全、压测和部署升级路线，参见 [ExperimentLens 修改扩充 2.0 项目方案](docs/experimentlens-2.0-expansion-plan.md)。
+
 ## 本地运行
 
 需要 Python 3.11+ 与 Node.js 20+。

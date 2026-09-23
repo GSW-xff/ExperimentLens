@@ -15,6 +15,15 @@ def _wait_for_terminal(client, agent_run_id: str):
     raise AssertionError("agent run did not finish")
 
 
+def _wait_for_event(client, agent_run_id: str, event_type: str):
+    for _ in range(100):
+        events = client.get(f"/api/agent-runs/{agent_run_id}/events").get_json()
+        if any(event["type"] == event_type for event in events):
+            return events
+        time.sleep(0.01)
+    raise AssertionError(f"agent event did not arrive: {event_type}")
+
+
 def test_agent_calls_multiple_tools_persists_events_and_streams_sse(tmp_path):
     app = create_app({"TESTING": True, "WORKSPACE_ROOT": tmp_path / "workspace"})
     client = app.test_client()
@@ -55,7 +64,7 @@ def test_agent_calls_multiple_tools_persists_events_and_streams_sse(tmp_path):
         "compare_groups",
     ]
     assert completed["evidence_refs"]
-    events = client.get(f"/api/agent-runs/{agent_run_id}/events").get_json()
+    events = _wait_for_event(client, agent_run_id, "agent.completed")
     assert [event["id"] for event in events] == list(range(1, len(events) + 1))
     assert {"tool.requested", "tool.started", "tool.completed", "evidence.validated", "agent.completed"} <= {
         event["type"] for event in events
