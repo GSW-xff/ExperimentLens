@@ -9,18 +9,29 @@ description = "Evidence-first analysis workspace for computational experiments"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+  "alembic>=1.16,<2",
+  "a2wsgi>=1.10,<2",
+  "fastapi>=0.116,<1",
   "Flask>=3.1,<4",
   "numpy>=2.0,<3",
   "openpyxl>=3.1,<4",
+  "opentelemetry-api>=1.36,<2",
+  "opentelemetry-exporter-otlp-proto-grpc>=1.36,<2",
+  "opentelemetry-sdk>=1.36,<2",
   "pandas>=2.2,<3",
   "pyarrow>=17,<24",
+  "prometheus-client>=0.22,<1",
+  "psycopg[binary]>=3.2,<4",
   "pydantic>=2.10,<3",
   "PyYAML>=6.0,<7",
   "scipy>=1.14,<2",
+  "SQLAlchemy>=2.0,<3",
+  "uvicorn>=0.35,<1",
 ]
 
 [project.optional-dependencies]
 dev = [
+  "httpx>=0.28,<1",
   "pytest>=8.3,<10",
   "pytest-cov>=6,<8",
   "ruff>=0.9,<1",
@@ -28,6 +39,8 @@ dev = [
 
 [project.scripts]
 experimentlens = "experimentlens.app:main"
+experimentlens-api = "experimentlens.control_plane:main"
+experimentlens-eval = "experimentlens.evaluation.runner:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["py-src/experimentlens"]
@@ -35,6 +48,9 @@ packages = ["py-src/experimentlens"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["py-src"]
+filterwarnings = [
+  "ignore:Using `httpx` with `starlette.testclient` is deprecated:starlette.exceptions.StarletteDeprecationWarning",
+]
 
 [tool.ruff]
 line-length = 100

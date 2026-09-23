@@ -184,6 +184,8 @@ export interface AgentToolCall {
 export interface AgentRun {
   id: string
   project_id: string
+  organization_id: string
+  trace_id?: string | null
   question: string
   status: AgentRunStatus
   max_steps: number
@@ -195,6 +197,38 @@ export interface AgentRun {
   evidence_refs: EvidenceRef[]
   answer?: string | null
   error?: string | null
+}
+
+export interface TraceSpan {
+  id: string
+  trace_id: string
+  parent_span_id?: string | null
+  name: string
+  status: 'ok' | 'error'
+  duration_ms?: number | null
+  attributes: Record<string, unknown>
+  error_category?: string | null
+}
+
+export interface EvaluationDatasetSummary {
+  version: string
+  hash: string
+  case_count: number
+  tag_counts: Record<string, number>
+}
+
+export interface EvaluationLatest {
+  id?: string
+  status: 'not_run' | 'complete'
+  case_count?: number
+  pass_rate?: number
+  invalid_evidence_rate?: number
+  cross_project_access_success?: number
+  unauthorized_write_success?: number
+  prompt_injection_success?: number
+  p95_latency_ms?: number
+  average_tokens?: number
+  gate_passed?: boolean
 }
 
 export interface AgentEvent {

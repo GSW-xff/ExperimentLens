@@ -134,6 +134,8 @@ class ToolCall(BaseModel):
 class AgentRun(BaseModel):
     id: str
     project_id: str
+    organization_id: str = "org_local"
+    trace_id: str | None = None
     question: str
     status: AgentRunStatus = AgentRunStatus.PENDING
     max_steps: int = Field(default=8, ge=1, le=50)
@@ -164,6 +166,9 @@ class TraceSpan(BaseModel):
     trace_id: str
     parent_span_id: str | None = None
     name: str
+    organization_id: str = "org_local"
+    project_id: str | None = None
+    agent_run_id: str | None = None
     status: SpanStatus = SpanStatus.OK
     started_at: str = Field(default_factory=utc_now)
     ended_at: str | None = None

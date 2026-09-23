@@ -15,9 +15,9 @@ import { api } from './api'
 import { MetricChart } from './components/MetricChart'
 import { ReportEditor } from './components/ReportEditor'
 import { addProject, bootstrap, refreshProject, selectProject, type AppDispatch, type RootState } from './store'
-import type { AgentEvent, AgentRun, AgentRuntimeInfo, Analysis, EvidenceRef, Finding, Project, Proposal, SchemaMapping } from './types'
+import type { AgentEvent, AgentRun, AgentRuntimeInfo, Analysis, EvaluationDatasetSummary, EvaluationLatest, EvidenceRef, Finding, Project, Proposal, SchemaMapping, TraceSpan } from './types'
 
-type Page = 'overview' | 'runs' | 'findings' | 'hypotheses' | 'proposals' | 'report'
+type Page = 'overview' | 'runs' | 'findings' | 'hypotheses' | 'proposals' | 'quality' | 'report'
 
 const navigation: Array<{ id: Page; label: string; icon: typeof DashboardRounded }> = [
   { id: 'overview', label: '实验总览', icon: DashboardRounded },
@@ -25,6 +25,7 @@ const navigation: Array<{ id: Page; label: string; icon: typeof DashboardRounded
   { id: 'findings', label: '异常与证据', icon: FactCheckRounded },
   { id: 'hypotheses', label: '排错假设', icon: LightbulbRounded },
   { id: 'proposals', label: '下一轮实验', icon: ScienceRounded },
+  { id: 'quality', label: '质量与评测', icon: AnalyticsRounded },
   { id: 'report', label: '分析报告', icon: DescriptionRounded },
 ]
 
@@ -123,6 +124,7 @@ function PageContent({ page, project, analysis, runs }: { page: Page; project: P
     case 'findings': return <FindingsPage findings={analysis.findings} />
     case 'hypotheses': return <HypothesesPage analysis={analysis} />
     case 'proposals': return <ProposalsPage proposals={analysis.proposals} />
+    case 'quality': return <QualityPage />
     case 'report': return <ReportPage project={project} />
   }
 }
@@ -249,6 +251,33 @@ function ReportPage({ project }: { project: Project }) {
   </>
 }
 
+function QualityPage() {
+  const [dataset, setDataset] = useState<EvaluationDatasetSummary | null>(null)
+  const [latest, setLatest] = useState<EvaluationLatest | null>(null)
+  const [error, setError] = useState('')
+  useEffect(() => {
+    void Promise.all([api.getEvaluationDataset(), api.getLatestEvaluation()])
+      .then(([nextDataset, nextLatest]) => { setDataset(nextDataset); setLatest(nextLatest) })
+      .catch((reason) => setError((reason as Error).message))
+  }, [])
+  return <>
+    <PageHeader eyebrow="EVALUATION / 发布质量门禁" title="Agent 质量与安全评测" description="模型、Prompt 或工具升级必须在固定数据集上比较证据有效性、轨迹、安全、延迟和成本。" />
+    {error && <Alert severity="warning">控制面尚未启用：{error}</Alert>}
+    <div className="quality-grid">
+      <article className="quality-hero"><span>GOLDEN DATASET</span><strong>{dataset?.case_count ?? '—'}</strong><p>版本 {dataset?.version ?? '—'} · {dataset ? dataset.hash.slice(0, 12) : '等待控制面'}…</p></article>
+      <article><span>任务通过率</span><strong>{latest?.pass_rate == null ? '未运行' : `${(latest.pass_rate * 100).toFixed(1)}%`}</strong><small>门槛 ≥ 95%</small></article>
+      <article><span>无效证据率</span><strong>{latest?.invalid_evidence_rate == null ? '未运行' : `${(latest.invalid_evidence_rate * 100).toFixed(2)}%`}</strong><small>零容忍</small></article>
+      <article><span>发布门禁</span><strong className={latest?.gate_passed ? 'passed' : ''}>{latest?.status === 'not_run' || !latest ? '等待评测' : latest.gate_passed ? 'PASS' : 'BLOCKED'}</strong><small>安全指标必须全部为 0</small></article>
+    </div>
+    <section className="panel quality-panel">
+      <div><h2>覆盖矩阵</h2><p>Golden Dataset 覆盖失败模式、可靠性和对抗安全场景。</p></div>
+      <div className="quality-tags">{Object.entries(dataset?.tag_counts || {}).sort((a, b) => b[1] - a[1]).map(([tag, count]) => <Chip key={tag} label={`${tag} · ${count}`} variant="outlined" />)}</div>
+      <div className="security-gates"><span>跨项目读取 <b>{latest?.cross_project_access_success ?? '—'}</b></span><span>越权写入 <b>{latest?.unauthorized_write_success ?? '—'}</b></span><span>Prompt Injection <b>{latest?.prompt_injection_success ?? '—'}</b></span><span>P95 延迟 <b>{latest?.p95_latency_ms == null ? '—' : `${latest.p95_latency_ms.toFixed(0)} ms`}</b></span></div>
+      <code>experimentlens-eval --trajectories /path/to/candidate-trajectories.json</code>
+    </section>
+  </>
+}
+
 function NewAnalysisDialog({ open, onClose, onComplete }: { open: boolean; onClose: () => void; onComplete: (id: string) => void }) {
   const dispatch = useDispatch<AppDispatch>()
   const [step, setStep] = useState(0)
@@ -306,6 +335,7 @@ function ChatDrawer({ open, onClose, project, analysis }: { open: boolean; onClo
   const [run, setRun] = useState<AgentRun | null>(null)
   const [events, setEvents] = useState<AgentEvent[]>([])
   const [runtime, setRuntime] = useState<AgentRuntimeInfo | null>(null)
+  const [traceSpans, setTraceSpans] = useState<TraceSpan[]>([])
   const [maxSteps, setMaxSteps] = useState(8)
   const [tokenBudget, setTokenBudget] = useState(8000)
   const sourceRef = useRef<EventSource | null>(null)
@@ -327,6 +357,7 @@ function ChatDrawer({ open, onClose, project, analysis }: { open: boolean; onClo
     sourceRef.current?.close()
     setRun(nextRun)
     setEvents([])
+    setTraceSpans([])
     setBusy(true)
     sourceRef.current = api.subscribeAgentRun(nextRun.id, (event) => {
       setEvents((items) => items.some((item) => item.id === event.id) ? items : [...items, event])
@@ -345,7 +376,10 @@ function ChatDrawer({ open, onClose, project, analysis }: { open: boolean; onClo
         setMessages((items) => [...items, { role: 'assistant', text: String(event.payload.answer || 'Agent 已完成诊断。'), refs }])
         setBusy(false)
         sourceRef.current?.close()
-        void api.getAgentRun(nextRun.id).then(setRun)
+        void api.getAgentRun(nextRun.id).then((latest) => {
+          setRun(latest)
+          if (latest.trace_id) void api.getTrace(latest.trace_id).then((trace) => setTraceSpans(trace.spans)).catch(() => undefined)
+        })
       }
       if (event.type === 'agent.failed' || event.type === 'agent.cancelled') {
         setMessages((items) => [...items, { role: 'assistant', text: event.type === 'agent.cancelled' ? '本次 Agent 运行已取消。' : `Agent 运行失败：${String(event.payload.error || '未知错误')}` }])
@@ -391,6 +425,7 @@ function ChatDrawer({ open, onClose, project, analysis }: { open: boolean; onClo
 
   const eventLabel = (event: AgentEvent) => ({
     'agent.started': '开始诊断',
+    'agent.recovered': 'Worker 重启后恢复运行',
     'model.started': '模型正在规划',
     'model.completed': '模型完成一步推理',
     'tool.requested': `模型请求调用 ${String(event.payload.tool_name || '工具')}`,
@@ -418,6 +453,7 @@ function ChatDrawer({ open, onClose, project, analysis }: { open: boolean; onClo
     <div className="messages">
       {messages.map((message, index) => <div key={index} className={`message ${message.role}`}><span>{message.role === 'assistant' ? 'Agent' : '你'}</span><p>{message.text}</p>{message.refs && <EvidenceList refs={message.refs} />}</div>)}
       {events.length > 0 && busy && <div className="agent-events">{events.filter((event) => event.type !== 'agent.created').slice(-8).map((event) => <div key={event.id} className={`agent-event ${event.type.includes('failed') ? 'failed' : ''}`}><span>{String(event.id).padStart(2, '0')}</span><p>{eventLabel(event)}</p></div>)}</div>}
+      {traceSpans.length > 0 && <div className="trace-mini"><header><span>TRACE</span><code>{run?.trace_id?.slice(0, 18)}…</code></header>{traceSpans.map((span) => <div key={span.id} className={span.status === 'error' ? 'error' : ''}><span>{span.name}</span><i style={{ width: `${Math.max(8, Math.min(100, (span.duration_ms || 0) / Math.max(...traceSpans.map((item) => item.duration_ms || 1)) * 100))}%` }} /><b>{span.duration_ms?.toFixed(1) ?? '—'} ms</b></div>)}</div>}
       {busy && <div className="message assistant typing"><span>Agent</span><p><i /><i /><i /></p></div>}
     </div>
     {!busy && !terminal && <div className="chat-suggestions"><button onClick={() => send('为什么均值更高但仍不建议直接采用？')}>均值更高为什么不直接采用？</button><button onClick={() => send('如果只能再跑三次实验，应该怎么安排？')}>只跑三次，怎么安排？</button></div>}

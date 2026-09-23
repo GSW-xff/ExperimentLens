@@ -1,0 +1,9 @@
+.git
+.venv
+node_modules
+dist
+.experimentlens
+.pytest_cache
+.ruff_cache
+**/__pycache__
+evals/reports

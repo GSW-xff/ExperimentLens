@@ -1,6 +1,8 @@
 # ExperimentLens
 
-ExperimentLens 是面向机器学习与数据科学实验的本地优先分析工作台。它把结果表、配置和日志统一为 runs，使用确定性统计生成 baseline 对比和异常 findings，再据此形成带证据的排错假设、下一轮最小实验方案与可分享报告。
+ExperimentLens 是面向机器学习与数据科学实验的证据驱动诊断平台。它把结果表、配置和日志统一为 runs，使用确定性统计生成 baseline 对比和异常 findings，再由受约束 Agent 组合只读工具形成带证据的诊断、下一轮最小实验方案与可分享报告。
+
+2.0 控制面采用 FastAPI，并通过兼容层保留现有 Flask API；AgentRun、事件、ToolCall、EvidenceRef、Trace 与评测结果可持久化到 SQLAlchemy 支持的数据库。AgentEvent 与 Transactional Outbox 在同一事务写入，SSE 支持事件序号和断线续传。Prometheus 指标、OpenTelemetry Trace、20 条版本化 Golden Dataset 与确定性发布门禁均已纳入测试。
 
 面向最终用户的文件准备、操作流程和结果解读说明，参见 [ExperimentLens 使用说明书](docs/user-guide.md)。
 
@@ -22,6 +24,40 @@ experimentlens
 ```
 
 打开 `http://127.0.0.1:5050`。开发界面可另行运行 `pnpm dev`，它会把 `/api` 代理到 Flask。
+
+推荐运行 2.0 FastAPI 控制面（本地默认使用 SQLite，并挂载旧 API）：
+
+```bash
+alembic upgrade head
+experimentlens-api
+```
+
+API 文档位于 `http://127.0.0.1:5050/docs`，健康检查、就绪检查与 Prometheus 指标分别位于 `/api/v2/health/live`、`/api/v2/health/ready` 和 `/api/v2/metrics`。
+
+## 一键基础设施
+
+```bash
+docker compose up --build
+```
+
+默认启动 Web/API、PostgreSQL、OpenTelemetry Collector、Prometheus 和 Grafana。Redis Streams、MinIO 与 Temporal 已作为明确的后续执行面边界放入可选 profile，避免默认环境启动尚未接入主链路的组件：
+
+```bash
+docker compose --profile events --profile artifacts --profile workflow up --build
+```
+
+本地示例密码只用于开发环境，部署时必须通过 Secret Manager 或编排平台 Secret 覆盖。
+
+## Agent 评测门禁
+
+固定评测集位于 `evals/cases/golden-v2.jsonl`，覆盖数值异常、OOM、Seed 波动、多目标权衡、越权访问、Prompt Injection、重复消息和超时。记录候选版本轨迹后执行：
+
+```bash
+experimentlens-eval --trajectories /path/to/candidate-trajectories.json \
+  --output evals/reports/latest.json
+```
+
+无效证据、跨项目访问、越权写入和 Prompt Injection 成功数均为零容忍；任务通过率低于 95% 时命令返回非零状态。前端“质量与评测”页展示数据集覆盖和最新门禁结果。
 
 ## 支持的数据
 
@@ -56,8 +92,12 @@ Agent 面板会显示当前模型提供方、模型名称、已注册工具、�
 ## 验证
 
 ```bash
-pytest
+pytest --cov=experimentlens --cov-report=term-missing
+ruff check .
 pnpm test
 pnpm build
-ruff check .
+alembic upgrade head
+alembic downgrade base
 ```
+
+当前已完成的 2.0 边界、尚未宣称完成的生产能力与演进顺序，参见 [2.0 架构实现说明](docs/architecture-2.0.md)。

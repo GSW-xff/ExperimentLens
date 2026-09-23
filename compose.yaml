@@ -1,0 +1,143 @@
+name: experimentlens
+
+services:
+  api:
+    build: .
+    ports:
+      - "5050:5050"
+    environment:
+      EXPERIMENTLENS_DATABASE_URL: postgresql+psycopg://experimentlens:experimentlens@postgres:5432/experimentlens
+      EXPERIMENTLENS_WORKSPACE: /data/workspace
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_EXPORTER_OTLP_INSECURE: "true"
+    volumes:
+      - workspace-data:/data/workspace
+    depends_on:
+      postgres:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+
+  postgres:
+    image: postgres:17.6-alpine
+    environment:
+      POSTGRES_DB: experimentlens
+      POSTGRES_USER: experimentlens
+      POSTGRES_PASSWORD: experimentlens
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U experimentlens -d experimentlens"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  redis:
+    profiles: ["events"]
+    image: redis:8.2-alpine
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  minio:
+    profiles: ["artifacts"]
+    image: quay.io/minio/minio:RELEASE.2025-06-13T11-33-47Z
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: experimentlens
+      MINIO_ROOT_PASSWORD: experimentlens-local-only
+    ports:
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  temporal:
+    profiles: ["workflow"]
+    image: temporalio/auto-setup:1.31.0
+    environment:
+      DB: postgres12_pgx
+      DB_PORT: 5432
+      POSTGRES_USER: experimentlens
+      POSTGRES_PWD: experimentlens
+      POSTGRES_SEEDS: postgres
+      DBNAME: temporal
+      VISIBILITY_DBNAME: temporal_visibility
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "7233:7233"
+    restart: unless-stopped
+
+  temporal-ui:
+    profiles: ["workflow"]
+    image: temporalio/ui:2.54.0
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_CORS_ORIGINS: http://localhost:5050
+    depends_on:
+      - temporal
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.161.0
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./deploy/otel/collector.yaml:/etc/otelcol/config.yaml:ro
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v3.14.0-distroless
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.retention.time=15d"]
+    volumes:
+      - ./deploy/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:13.1.6
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: experimentlens-local-only
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./deploy/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+volumes:
+  workspace-data:
+  postgres-data:
+  redis-data:
+  minio-data:
+  prometheus-data:
+  grafana-data:

@@ -18,10 +18,14 @@ def create_app(test_config: dict | None = None) -> Flask:
     if test_config:
         app.config.update(test_config)
 
-    workspace = LocalRepository(app.config.get("WORKSPACE_ROOT"))
+    workspace = app.config.get("WORKSPACE_INSTANCE") or LocalRepository(
+        app.config.get("WORKSPACE_ROOT")
+    )
     app.extensions["experimentlens_workspace"] = workspace
     app.extensions["experimentlens_service"] = ExperimentService(workspace)
-    app.extensions["experimentlens_agent_orchestrator"] = AgentOrchestrator(workspace)
+    app.extensions["experimentlens_agent_orchestrator"] = app.config.get(
+        "AGENT_ORCHESTRATOR_INSTANCE"
+    ) or AgentOrchestrator(workspace)
     app.register_blueprint(projects_api, url_prefix="/api")
     app.register_blueprint(analysis_api, url_prefix="/api")
     app.register_blueprint(agent_runs_api, url_prefix="/api")

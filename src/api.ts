@@ -1,4 +1,4 @@
-import type { AgentEvent, AgentRun, AgentRuntimeInfo, Analysis, Project, RunRow, SchemaMapping } from './types'
+import type { AgentEvent, AgentRun, AgentRuntimeInfo, Analysis, EvaluationDatasetSummary, EvaluationLatest, Project, RunRow, SchemaMapping, TraceSpan } from './types'
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, init)
@@ -50,9 +50,12 @@ export const api = {
   getAgentEvents: (id: string, after = 0) => request<AgentEvent[]>(`/api/agent-runs/${id}/events?after=${after}`),
   cancelAgentRun: (id: string) => request<AgentRun>(`/api/agent-runs/${id}/cancel`, { method: 'POST' }),
   retryAgentRun: (id: string) => request<AgentRun>(`/api/agent-runs/${id}/retry`, { method: 'POST' }),
+  getTrace: (id: string) => request<{ trace_id: string; spans: TraceSpan[] }>(`/api/v2/traces/${id}`),
+  getEvaluationDataset: () => request<EvaluationDatasetSummary>('/api/v2/evaluations/dataset'),
+  getLatestEvaluation: () => request<EvaluationLatest>('/api/v2/evaluations/latest'),
   subscribeAgentRun: (id: string, onEvent: (event: AgentEvent) => void, onError: () => void) => {
     const source = new EventSource(`/api/agent-runs/${id}/stream`)
-    const eventTypes = ['agent.created', 'agent.started', 'model.started', 'model.completed', 'tool.requested', 'tool.started', 'tool.completed', 'tool.failed', 'evidence.validated', 'agent.completed', 'agent.failed', 'agent.cancelled']
+    const eventTypes = ['agent.created', 'agent.started', 'agent.recovered', 'model.started', 'model.completed', 'tool.requested', 'tool.started', 'tool.completed', 'tool.failed', 'evidence.validated', 'agent.completed', 'agent.failed', 'agent.cancelled']
     eventTypes.forEach((type) => source.addEventListener(type, (message) => {
       onEvent(JSON.parse((message as MessageEvent).data) as AgentEvent)
     }))

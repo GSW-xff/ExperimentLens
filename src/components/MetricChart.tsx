@@ -1,17 +1,17 @@
 import { useEffect, useRef } from 'react'
 import { BarChart } from 'echarts/charts'
 import { GridComponent, MarkLineComponent, TooltipComponent } from 'echarts/components'
-import * as echarts from 'echarts/core'
+import { init, use } from 'echarts/core'
 import { SVGRenderer } from 'echarts/renderers'
 import type { GroupStat } from '../types'
 
-echarts.use([BarChart, GridComponent, MarkLineComponent, TooltipComponent, SVGRenderer])
+use([BarChart, GridComponent, MarkLineComponent, TooltipComponent, SVGRenderer])
 
 export function MetricChart({ groups, metric }: { groups: GroupStat[]; metric: string }) {
   const ref = useRef<HTMLDivElement>(null)
   useEffect(() => {
     if (!ref.current) return
-    const chart = echarts.init(ref.current, undefined, { renderer: 'svg' })
+    const chart = init(ref.current, undefined, { renderer: 'svg' })
     chart.setOption({
       animationDuration: 500,
       grid: { top: 24, right: 24, bottom: 38, left: 54 },

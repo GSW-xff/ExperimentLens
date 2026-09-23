@@ -49,4 +49,14 @@ describe('ExperimentLens API client', () => {
     await expect(api.getAgentRuntime('p1')).resolves.toEqual(payload)
     expect(fetchMock).toHaveBeenCalledWith('/api/projects/p1/agent/runtime', undefined)
   })
+
+  it('loads trace and evaluation data from the v2 control plane', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({ trace_id: 'tr_1', spans: [] }), { status: 200, headers: { 'Content-Type': 'application/json' } }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ version: '2.0.0', hash: 'abc', case_count: 20, tag_counts: {} }), { status: 200, headers: { 'Content-Type': 'application/json' } }))
+    await api.getTrace('tr_1')
+    await api.getEvaluationDataset()
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/v2/traces/tr_1')
+    expect(fetchMock.mock.calls[1][0]).toBe('/api/v2/evaluations/dataset')
+  })
 })
