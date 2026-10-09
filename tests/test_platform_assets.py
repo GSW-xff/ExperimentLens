@@ -34,6 +34,7 @@ def test_ci_enforces_tests_coverage_build_and_container():
 def test_reproducible_verification_and_demo_scripts_cover_upgrade_gates():
     verify = (ROOT / "scripts/verify.sh").read_text(encoding="utf-8")
     demo = (ROOT / "scripts/interview_demo.sh").read_text(encoding="utf-8")
+    start = (ROOT / "scripts/start_local.sh").read_text(encoding="utf-8")
 
     for marker in (
         "pytest --cov", "ruff check", "vitest run", "tsc -b", "vite build",
@@ -43,6 +44,8 @@ def test_reproducible_verification_and_demo_scripts_cover_upgrade_gates():
     assert "experimentlens-worker" in demo
     assert "experimentlens-eval" in demo
     assert "experimentlens-benchmark --runs 100 --workers 2" in demo
+    assert "experimentlens-api" in start and "experimentlens-worker" in start
+    assert "wait -n" not in start
 
 
 def test_published_agent_evidence_reports_are_machine_checkable():

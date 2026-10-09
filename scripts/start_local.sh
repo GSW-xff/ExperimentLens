@@ -20,4 +20,6 @@ trap cleanup EXIT INT TERM
 
 echo "ExperimentLens: http://127.0.0.1:${EXPERIMENTLENS_PORT:-5050}"
 echo "API PID=$API_PID, Worker PID=$WORKER_PID"
-wait -n "$API_PID" "$WORKER_PID"
+while kill -0 "$API_PID" 2>/dev/null && kill -0 "$WORKER_PID" 2>/dev/null; do
+  sleep 1
+done
