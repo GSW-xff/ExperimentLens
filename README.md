@@ -1,5 +1,7 @@
 # ExperimentLens
 
+[English](README_EN.md) | 简体中文
+
 ExperimentLens 是面向机器学习与数据科学实验的证据驱动诊断平台。它把结果表、配置和日志统一为 runs，使用确定性统计生成 baseline 对比和异常 findings，再由受约束 Agent 组合只读工具形成带证据的诊断、下一轮最小实验方案与可分享报告。
 
 2.0 控制面采用 FastAPI，并通过兼容层保留现有 Flask API；AgentRun、AgentStep、事件、ToolCall、EvidenceRef、Trace 与评测结果持久化到 SQLAlchemy 支持的数据库。API 只入队，独立 Worker 通过 Lease、heartbeat 和 fencing token 执行并恢复任务；工具调用用步骤级幂等键去重。SSE 支持事件序号和断线续传，30 条评测案例由真实 AgentRun 生成轨迹。
