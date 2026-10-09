@@ -72,3 +72,20 @@ def test_alembic_schema_migrates_forward_and_back(tmp_path):
     command.downgrade(config, "base")
     remaining = set(inspect(Database(f"sqlite:///{database_path}").engine).get_table_names())
     assert not ({"agent_runs", "agent_events", "outbox_events", "trace_spans"} & remaining)
+
+
+def test_worker_migration_adopts_schema_created_before_alembic_upgrade(tmp_path):
+    repository_root = __import__("pathlib").Path(__file__).parents[2]
+    database_path = tmp_path / "partially-created.db"
+    database = Database(f"sqlite:///{database_path}")
+    database.create_schema()
+    config = Config(str(repository_root / "alembic.ini"))
+    config.set_main_option("sqlalchemy.url", f"sqlite:///{database_path}")
+    command.stamp(config, "0dada3bb9c31")
+
+    command.upgrade(config, "head")
+
+    inspector = inspect(database.engine)
+    assert "agent_steps" in inspector.get_table_names()
+    columns = {column["name"] for column in inspector.get_columns("agent_runs")}
+    assert {"queued_at", "lease_owner", "lease_expires_at", "fencing_token"} <= columns
