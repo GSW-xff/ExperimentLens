@@ -1,7 +1,8 @@
 # ExperimentLens 最小化 Agent 面试竞争力升级方案
 
-> 文档状态：待实施  
+> 文档状态：已实施
 > 制定日期：2026-10-09  
+> 完成日期：2026-10-09
 > 预计工期：10～14 个工作日  
 > 目标岗位：AI Agent 开发、Agent 平台、AI 应用后端、LLMOps 实习
 
@@ -17,6 +18,8 @@
 4. 项目中关于可靠性、延迟和成功率的说法是否有可复现数据？
 
 ## 2. 当前基础
+
+> 实施结果：真实 Evaluation Harness、数据库 Lease Worker、AgentStep 恢复、三个崩溃点测试、100 任务基线脚本、两篇 ADR 和一键演示均已落地。使用说明见 `docs/project-description-and-usage.md`，可复现证据见 `docs/evidence/`。
 
 当前项目已经具备：
 

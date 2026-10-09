@@ -35,6 +35,13 @@ class ToolCallStatus(StrEnum):
     REJECTED = "rejected"
 
 
+class AgentStepStatus(StrEnum):
+    PENDING = "pending"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
 class SpanStatus(StrEnum):
     OK = "ok"
     ERROR = "error"
@@ -129,6 +136,21 @@ class ToolCall(BaseModel):
     output_summary: str | None = None
     error: str | None = None
     created_at: str = Field(default_factory=utc_now)
+
+
+class AgentStep(BaseModel):
+    agent_run_id: str
+    step_index: int = Field(ge=0)
+    step_type: str
+    input_hash: str
+    output_hash: str | None = None
+    status: AgentStepStatus = AgentStepStatus.PENDING
+    attempt: int = Field(default=1, ge=1)
+    input: dict[str, Any] = Field(default_factory=dict)
+    output: dict[str, Any] | None = None
+    started_at: str | None = None
+    finished_at: str | None = None
+    error_category: str | None = None
 
 
 class AgentRun(BaseModel):

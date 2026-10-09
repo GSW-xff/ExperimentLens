@@ -1,6 +1,7 @@
 from pathlib import Path
 
 GUIDE = Path(__file__).parents[1] / "docs" / "user-guide.md"
+PROJECT_GUIDE = Path(__file__).parents[1] / "docs" / "project-description-and-usage.md"
 
 
 def test_user_guide_covers_complete_user_journey():
@@ -48,3 +49,17 @@ def test_user_guide_has_no_unresolved_placeholders():
 
     for placeholder in ("TODO", "TBD", "待补充"):
         assert placeholder not in content
+
+
+def test_project_description_documents_worker_evaluation_and_recovery_commands():
+    content = PROJECT_GUIDE.read_text(encoding="utf-8")
+
+    for marker in (
+        "experimentlens-worker",
+        "experimentlens-eval",
+        "experimentlens-benchmark --runs 100 --workers 2",
+        "Lease + heartbeat + fencing token",
+        "30 条评测案例",
+        "make verify",
+    ):
+        assert marker in content

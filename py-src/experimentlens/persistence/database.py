@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 
 from sqlalchemy import Engine, create_engine, event, text
+from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session, sessionmaker
 
 from .models import Base
@@ -19,6 +20,10 @@ class Database:
             root.mkdir(parents=True, exist_ok=True)
             database_url = f"sqlite:///{root.parent / 'control-plane.db'}"
         self.url = database_url
+        if database_url.startswith("sqlite"):
+            sqlite_path = make_url(database_url).database
+            if sqlite_path and sqlite_path != ":memory:":
+                Path(sqlite_path).parent.mkdir(parents=True, exist_ok=True)
         connect_args = {"check_same_thread": False} if database_url.startswith("sqlite") else {}
         self.engine: Engine = create_engine(
             database_url, pool_pre_ping=True, connect_args=connect_args

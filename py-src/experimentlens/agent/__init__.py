@@ -6,6 +6,7 @@ from .model_gateway import (
     OpenAIModelGateway,
 )
 from .tool_registry import RegisteredTool, ToolRegistry
+from .worker import AgentWorker
 
 __all__ = [
     "MockModelGateway",
@@ -15,4 +16,5 @@ __all__ = [
     "ModelResponse",
     "RegisteredTool",
     "ToolRegistry",
+    "AgentWorker",
 ]

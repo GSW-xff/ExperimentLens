@@ -41,6 +41,8 @@ dev = [
 experimentlens = "experimentlens.app:main"
 experimentlens-api = "experimentlens.control_plane:main"
 experimentlens-eval = "experimentlens.evaluation.runner:main"
+experimentlens-worker = "experimentlens.agent.worker:main"
+experimentlens-benchmark = "experimentlens.reliability:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["py-src/experimentlens"]

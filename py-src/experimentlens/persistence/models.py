@@ -42,10 +42,38 @@ class AgentRunRecord(Base):
     status: Mapped[str] = mapped_column(String(32), index=True)
     trace_id: Mapped[str | None] = mapped_column(String(64), index=True)
     payload: Mapped[str] = mapped_column(Text)
+    queued_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now, index=True)
+    lease_owner: Mapped[str | None] = mapped_column(String(120), index=True)
+    lease_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
+    heartbeat_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    fencing_token: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
     __table_args__ = (Index("ix_agent_runs_scope_status", "organization_id", "project_id", "status"),)
+
+
+class AgentStepRecord(Base):
+    __tablename__ = "agent_steps"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    agent_run_id: Mapped[str] = mapped_column(
+        ForeignKey("agent_runs.id", ondelete="CASCADE"), index=True
+    )
+    step_index: Mapped[int] = mapped_column(Integer)
+    step_type: Mapped[str] = mapped_column(String(64), index=True)
+    input_hash: Mapped[str] = mapped_column(String(64))
+    output_hash: Mapped[str | None] = mapped_column(String(64))
+    status: Mapped[str] = mapped_column(String(32), index=True)
+    attempt: Mapped[int] = mapped_column(Integer, default=1)
+    payload: Mapped[str] = mapped_column(Text)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    error_category: Mapped[str | None] = mapped_column(String(120), index=True)
+
+    __table_args__ = (
+        UniqueConstraint("agent_run_id", "step_index", name="uq_agent_step_index"),
+    )
 
 
 class AgentEventRecord(Base):

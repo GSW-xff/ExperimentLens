@@ -24,6 +24,28 @@ services:
     security_opt:
       - no-new-privileges:true
 
+  worker:
+    build: .
+    command: ["experimentlens-worker"]
+    environment:
+      EXPERIMENTLENS_DATABASE_URL: postgresql+psycopg://experimentlens:experimentlens@postgres:5432/experimentlens
+      EXPERIMENTLENS_WORKSPACE: /data/workspace
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_EXPORTER_OTLP_INSECURE: "true"
+    volumes:
+      - workspace-data:/data/workspace
+    depends_on:
+      api:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+
   postgres:
     image: postgres:17.6-alpine
     environment:

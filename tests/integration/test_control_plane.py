@@ -1,5 +1,6 @@
 import time
 
+from experimentlens.agent.worker import AgentWorker
 from experimentlens.control_plane import create_app
 from experimentlens.evaluation import load_dataset
 from fastapi.testclient import TestClient
@@ -36,6 +37,9 @@ def test_fastapi_control_plane_preserves_legacy_api_and_exposes_durable_runtime(
             json={"question": "比较实验组", "max_steps": 5, "token_budget": 500},
         )
         assert created.status_code == 202
+        assert created.json()["status"] == "pending"
+        worker = AgentWorker(app.state.database, app.state.workspace, owner="control-test")
+        assert worker.process_run(created.json()["id"]) == created.json()["id"]
         completed = _wait_for_terminal(client, created.json()["id"])
         assert completed["status"] == "completed"
         assert completed["trace_id"]
@@ -57,16 +61,20 @@ def test_fastapi_control_plane_preserves_legacy_api_and_exposes_durable_runtime(
         dataset = client.get("/api/v2/evaluations/dataset").json()
         assert dataset["case_count"] >= 20
         _, cases = load_dataset(__import__("pathlib").Path(__file__).parents[2] / "evals/cases/golden-v2.jsonl")
-        trajectories = [{
-            "case_id": case.id,
-            "tools": case.required_tools,
-            "evidence_ids": [f"evidence-{index}" for index in range(case.minimum_evidence)],
-        } for case in cases]
+        assert len(cases) == 30
+        forged = client.post(
+            "/api/v2/evaluations/run",
+            json={"trajectories": [{"case_id": "forged", "tools": []}]},
+        )
+        assert forged.status_code == 422
         evaluated = client.post(
-            "/api/v2/evaluations/run", json={"trajectories": trajectories}
+            "/api/v2/evaluations/run",
+            json={"dataset_version": "2.0.0", "candidate_model": "deterministic-evaluation"},
         )
         assert evaluated.status_code == 200
         assert evaluated.json()["gate_passed"] is True
+        assert evaluated.json()["case_count"] == 30
+        assert evaluated.json()["versions"]["git_commit"]
         latest = client.get("/api/v2/evaluations/latest").json()
         assert latest["id"] == evaluated.json()["id"]
 

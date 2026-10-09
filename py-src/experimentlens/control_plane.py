@@ -16,7 +16,8 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from .agent.orchestrator import TERMINAL_STATUSES, AgentOrchestrator
 from .app import create_app as create_legacy_app
-from .evaluation import Trajectory, evaluate_cases, load_dataset
+from .evaluation import load_dataset
+from .evaluation.executor import EvaluationExecutor
 from .observability import PlatformMetrics
 from .persistence import Database, SQLAgentRunRepository
 from .repositories.local import LocalRepository
@@ -33,7 +34,11 @@ class CreateAgentRunRequest(BaseModel):
 class RunEvaluationRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    trajectories: list[Trajectory] = Field(min_length=1, max_length=1000)
+    dataset_version: str = "2.0.0"
+    candidate_model: str = "deterministic-evaluation"
+    max_steps: int = Field(default=8, ge=1, le=50)
+    token_budget: int = Field(default=8000, ge=128, le=1_000_000)
+    compare_to_latest: bool = False
 
 
 def create_app(config: dict | None = None) -> FastAPI:
@@ -55,12 +60,13 @@ def create_app(config: dict | None = None) -> FastAPI:
         workspace,
         repository=agent_repository,
         metrics=metrics,
+        auto_execute=False,
     )
 
     @asynccontextmanager
     async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
-        if settings.get("RECOVER_RUNS", True):
-            orchestrator.recover_incomplete_runs()
+        # Agent execution belongs to experimentlens-worker. Expired leases are
+        # reclaimed by workers, so an API restart never executes queued work.
         yield
 
     app = FastAPI(
@@ -73,6 +79,7 @@ def create_app(config: dict | None = None) -> FastAPI:
     app.state.workspace = workspace
     app.state.metrics = metrics
     app.state.orchestrator = orchestrator
+    app.state.agent_repository = agent_repository
 
     @app.middleware("http")
     async def observe_http(request: Request, call_next):
@@ -193,15 +200,27 @@ def create_app(config: dict | None = None) -> FastAPI:
 
     @app.post("/api/v2/evaluations/run", tags=["evaluation"])
     async def run_evaluation(payload: RunEvaluationRequest):
-        report = evaluate_cases(
-            evaluation_cases,
-            payload.trajectories,
+        if payload.dataset_version != "2.0.0":
+            raise ValueError(f"unknown dataset version: {payload.dataset_version}")
+        latest = agent_repository.latest_evaluation() if payload.compare_to_latest else None
+        executor = EvaluationExecutor(
+            workspace,
+            database,
+            cases=evaluation_cases,
             dataset_hash=dataset_hash,
+            model=payload.candidate_model,
+            max_steps=payload.max_steps,
+            token_budget=payload.token_budget,
         )
-        evaluation_run_id = agent_repository.save_evaluation(
-            dataset_hash, evaluation_cases, report
+        report = await asyncio.to_thread(
+            executor.execute,
+            latest[1] if latest else None,
         )
-        return {"id": evaluation_run_id, **report.model_dump(mode="json")}
+        saved = agent_repository.latest_evaluation()
+        return {
+            "id": saved[0] if saved else None,
+            **report.model_dump(mode="json"),
+        }
 
     @app.get("/api/v2/evaluations/latest", tags=["evaluation"])
     async def get_latest_evaluation():

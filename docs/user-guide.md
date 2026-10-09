@@ -25,8 +25,7 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -e '.[dev]'
 pnpm install
-pnpm build
-experimentlens
+./scripts/start_local.sh
 ```
 
 浏览器访问：
@@ -35,7 +34,7 @@ experimentlens
 http://127.0.0.1:5050
 ```
 
-应用默认只监听本机地址。第一次打开且工作区为空时，系统会自动创建“Transformer 调参实验”示例项目，用户可以先用它了解各个分析页面。
+该脚本同时启动 API 和独立 Agent Worker。应用默认只监听本机地址。第一次打开且工作区为空时，系统会自动创建“Transformer 调参实验”示例项目，用户可以先用它了解各个分析页面。
 
 ### 2.2 推荐使用流程
 
@@ -428,7 +427,7 @@ MVP 只负责提出方案，不会自动改代码或启动运行。用户应把�
 
 ### 9.7 页面无法访问
 
-确认终端中的 `experimentlens` 进程仍在运行，并访问 `http://127.0.0.1:5050`。如果端口被占用，可以设置 `EXPERIMENTLENS_PORT` 后重新启动。
+确认终端中的 `experimentlens-api` 和 `experimentlens-worker` 进程仍在运行，并访问 `http://127.0.0.1:5050`。AgentRun 长时间保持 `pending` 通常表示 Worker 未启动，或 API 和 Worker 没有使用同一个数据库。如果端口被占用，可以设置 `EXPERIMENTLENS_PORT` 后重新启动。
 
 ## 10. 数据保存与隐私
 
