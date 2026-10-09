@@ -1,6 +1,5 @@
 from pathlib import Path
 
-
 ROOT = Path(__file__).parents[1]
 ROADMAP = ROOT / "docs" / "interview-competitive-modification-roadmap.md"
 README = ROOT / "README.md"

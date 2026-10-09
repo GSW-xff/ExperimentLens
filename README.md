@@ -12,6 +12,8 @@ ExperimentLens 是面向机器学习与数据科学实验的证据驱动诊断�
 
 基于当前代码真实完成度的岗位适配分析、关键缺口、实施优先级、量化验收标准与面试交付物，参见 [ExperimentLens 大厂 AI Agent 实习竞争力升级方案](docs/interview-competitive-modification-roadmap.md)。
 
+若以最少改动优先获得 Agent 开发岗位的面试竞争力，参见 [ExperimentLens 最小化 Agent 面试竞争力升级方案](docs/minimum-agent-interview-upgrade-plan.md)。
+
 ## 本地运行
 
 需要 Python 3.11+ 与 Node.js 20+。
