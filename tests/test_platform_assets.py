@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import yaml
@@ -42,3 +43,25 @@ def test_reproducible_verification_and_demo_scripts_cover_upgrade_gates():
     assert "experimentlens-worker" in demo
     assert "experimentlens-eval" in demo
     assert "experimentlens-benchmark --runs 100 --workers 2" in demo
+
+
+def test_published_agent_evidence_reports_are_machine_checkable():
+    evaluation = json.loads(
+        (ROOT / "evals/reports/baseline.json").read_text(encoding="utf-8")
+    )
+    reliability = json.loads(
+        (ROOT / "docs/evidence/reliability-baseline.json").read_text(encoding="utf-8")
+    )
+    recovery = (ROOT / "docs/evidence/worker-crash-recovery.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert evaluation["case_count"] == 30
+    assert evaluation["gate_passed"] is True
+    assert evaluation["versions"]["git_commit"]
+    assert reliability["configuration"]["run_count"] == 100
+    assert reliability["configuration"]["worker_count"] == 2
+    assert reliability["results"]["completion_rate"] == 1
+    assert reliability["results"]["duplicate_tool_calls"] == 0
+    assert reliability["results"]["lost_events"] == 0
+    assert "3/3 崩溃点" in recovery

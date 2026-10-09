@@ -1,0 +1,30 @@
+{
+  "generated_at": "2026-10-09T09:36:30.331604+08:00",
+  "configuration": {
+    "run_count": 100,
+    "worker_count": 2,
+    "database": "sqlite",
+    "offline_model": "deterministic-fallback",
+    "tool_calls_per_run": "2"
+  },
+  "results": {
+    "completion_rate": 1.0,
+    "duplicate_tool_calls": 0,
+    "lost_events": 0,
+    "sse_replay_failures": 0,
+    "queue_wait_ms_p50": 2261.657,
+    "queue_wait_ms_p95": 4110.479950000001,
+    "agent_duration_ms_p50": 36.5195,
+    "agent_duration_ms_p95": 51.3579,
+    "crash_recovery_ms": 223.5870361328125,
+    "worker_crashes_injected": 1,
+    "wall_time_seconds": 4.474524974822998,
+    "process_cpu_seconds": 4.80359,
+    "process_max_rss_kib": 168464.0,
+    "database_pool_checked_out": 0
+  },
+  "limitations": [
+    "This is a local SQLite baseline, not an internet-production SLO.",
+    "CPU and RSS describe the combined benchmark process, not a database server."
+  ]
+}
