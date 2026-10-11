@@ -100,4 +100,6 @@ make verify
 
 面向 AI Agent 初学者的原理、技术栈、代码地图、学习路线和面试问答，见 [从零学习与面试讲解手册](docs/onboarding-and-interview-study-guide.md)。
 
+需要离线学习或打印时，可下载 [Word 版本学习手册](docs/ExperimentLens-Agent-学习与面试手册.docx)。
+
 当前已完成的 2.0 边界、尚未宣称完成的生产能力与演进顺序，参见 [2.0 架构实现说明](docs/architecture-2.0.md)。
