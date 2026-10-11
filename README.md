@@ -16,19 +16,26 @@ ExperimentLens 是面向机器学习与数据科学实验的证据驱动诊断�
 
 若以最少改动优先获得 Agent 开发岗位的面试竞争力，参见 [ExperimentLens 最小化 Agent 面试竞争力升级方案](docs/minimum-agent-interview-upgrade-plan.md)。
 
+## 公开仓库资料
+
+本仓库已包含 [MIT 许可证](LICENSE)、[贡献指南](CONTRIBUTING.md)、[安全政策](SECURITY.md)、[行为准则](CODE_OF_CONDUCT.md)、Issue/PR 模板、Dependabot 和 GitHub Actions 质量门禁。首次建库、分支保护与安全设置见 [GitHub 发布清单](docs/github-release-checklist.md)。
+
 ## 推荐启动方式
 
-需要 Python 3.11+ 与 Node.js 20+。
+需要 Python 3.11+、Node.js 20.19+ 与 pnpm 11。仓库中的 `.python-version`、`.nvmrc` 和 `packageManager` 字段给出了 CI 使用的可复现版本。
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
 pip install -e '.[dev]'
-pnpm install
+corepack enable
+pnpm install --frozen-lockfile
 ./scripts/start_local.sh
 ```
 
 该命令会构建前端、升级数据库，同时启动 FastAPI 控制面和独立 Agent Worker。打开 `http://127.0.0.1:5050`。开发界面可另行运行 `pnpm dev`。
+
+如需改写默认值，可复制 `.env.example` 为 `.env`，然后执行 `set -a; source .env; set +a`。`.env` 已被 Git 和 Docker 构建上下文忽略；请勿将真实密钥提交到仓库。
 
 API 文档位于 `http://127.0.0.1:5050/docs`，健康检查、就绪检查与 Prometheus 指标分别位于 `/api/v2/health/live`、`/api/v2/health/ready` 和 `/api/v2/metrics`。
 

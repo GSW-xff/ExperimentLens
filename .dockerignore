@@ -1,4 +1,9 @@
 .git
+.github
+.DS_Store
+.env
+.env.*
+!.env.example
 .venv
 node_modules
 dist
@@ -7,3 +12,6 @@ dist
 .ruff_cache
 **/__pycache__
 evals/reports
+docs
+tests
+*.log

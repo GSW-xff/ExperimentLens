@@ -8,6 +8,17 @@ version = "0.1.0"
 description = "Evidence-first analysis workspace for computational experiments"
 readme = "README.md"
 requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE"]
+keywords = ["ai-agent", "experiment-tracking", "machine-learning", "observability"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
 dependencies = [
   "alembic>=1.16,<2",
   "a2wsgi>=1.10,<2",

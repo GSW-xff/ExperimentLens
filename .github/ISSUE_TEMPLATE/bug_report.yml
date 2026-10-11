@@ -1,0 +1,57 @@
+name: Bug report / 缺陷报告
+description: Report a reproducible problem in ExperimentLens.
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for helping improve ExperimentLens. Do not include secrets or private experiment data.
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit / 版本或提交
+      placeholder: v0.1.0 or commit SHA
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area / 模块
+      options:
+        - Web UI
+        - API or service
+        - Agent runtime or worker
+        - Evaluation or benchmark
+        - Docker or deployment
+        - Documentation
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction / 复现步骤
+      description: Include a minimal, sanitized example.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior / 期望行为
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment / 环境
+      placeholder: OS, Python, Node.js, browser, database
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks / 确认
+      options:
+        - label: I removed credentials and private data from this report.
+          required: true
+        - label: I searched for an existing issue describing the same problem.
+          required: true

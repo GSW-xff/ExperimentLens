@@ -8,6 +8,8 @@ ExperimentLens turns machine learning and data science experiment results, confi
 
 Unlike a chat wrapper, ExperimentLens includes a persistent agent runtime, recoverable workers, validated evidence references, replayable events, real trajectory evaluation, and reproducible reliability benchmarks.
 
+Repository governance is ready for public collaboration: see the [MIT license](LICENSE), [contribution guide](CONTRIBUTING.md), [security policy](SECURITY.md), [code of conduct](CODE_OF_CONDUCT.md), and [GitHub release checklist](docs/github-release-checklist.md). Issue and pull request templates, Dependabot, and GitHub Actions quality gates are included.
+
 ## Highlights
 
 - **Real tool loop:** the agent selects and executes six typed, project-scoped diagnostic tools.
@@ -53,17 +55,20 @@ The API only persists and queues an `AgentRun`. A worker claims pending or expir
 
 ## Quick Start
 
-Requirements: Python 3.11+, Node.js 20+, and pnpm.
+Requirements: Python 3.11+, Node.js 20.19+, and pnpm 11. Reproducible CI versions are recorded in `.python-version`, `.nvmrc`, and the `packageManager` field.
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
 pip install -e '.[dev]'
-pnpm install
+corepack enable
+pnpm install --frozen-lockfile
 ./scripts/start_local.sh
 ```
 
 Open <http://127.0.0.1:5050>. The script builds the frontend, upgrades the database, and starts both the FastAPI control plane and an independent agent worker.
+
+To override local defaults, copy `.env.example` to `.env`, then run `set -a; source .env; set +a`. Git and the Docker build context ignore `.env`; never commit real credentials.
 
 Useful endpoints:
 

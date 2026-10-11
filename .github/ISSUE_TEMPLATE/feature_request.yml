@@ -1,0 +1,31 @@
+name: Feature request / 功能建议
+description: Propose a focused improvement to ExperimentLens.
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / 问题
+      description: What user or engineering problem should this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution / 建议方案
+      description: Describe the smallest useful outcome and its acceptance criteria.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives / 备选方案
+      description: What workarounds or alternatives have you considered?
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope / 范围
+      options:
+        - label: This request preserves evidence traceability and project isolation.
+          required: true
