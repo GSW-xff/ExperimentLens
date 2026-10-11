@@ -98,4 +98,6 @@ make verify
 
 完整项目说明、命令和故障排查见 [项目说明与使用文档](docs/project-description-and-usage.md)；8 分钟演示流程见 [面试演示说明](docs/interview-demo.md)。
 
+面向 AI Agent 初学者的原理、技术栈、代码地图、学习路线和面试问答，见 [从零学习与面试讲解手册](docs/onboarding-and-interview-study-guide.md)。
+
 当前已完成的 2.0 边界、尚未宣称完成的生产能力与演进顺序，参见 [2.0 架构实现说明](docs/architecture-2.0.md)。

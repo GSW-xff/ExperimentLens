@@ -183,6 +183,7 @@ scripts/                 Local start, verification, and demo automation
 
 - [Project description and usage guide](docs/project-description-and-usage.md)
 - [Eight-minute interview demo](docs/interview-demo.md)
+- [Chinese beginner onboarding and interview study guide](docs/onboarding-and-interview-study-guide.md)
 - [2.0 architecture and honest capability boundaries](docs/architecture-2.0.md)
 - [Architecture decision records](docs/adr/README.md)
 - [Chinese end-user guide](docs/user-guide.md)
