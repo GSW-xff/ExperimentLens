@@ -82,3 +82,14 @@ def test_runtime_version_files_are_used_by_ci_and_documented():
         assert ".env.example" in readme
         assert "CONTRIBUTING.md" in readme
         assert "SECURITY.md" in readme
+
+
+def test_web_security_override_uses_patched_source_map_js():
+    workspace = yaml.safe_load(
+        (ROOT / "pnpm-workspace.yaml").read_text(encoding="utf-8")
+    )
+    assert workspace["overrides"]["source-map-js"] == "1.2.2"
+
+    lockfile = (ROOT / "pnpm-lock.yaml").read_text(encoding="utf-8")
+    assert "source-map-js@1.2.1" not in lockfile
+    assert "source-map-js@1.2.2" in lockfile
