@@ -97,6 +97,4 @@ make verify
 
 该命令依次检查 CLI、后端测试与覆盖率、Ruff、前端测试、TypeScript、前端构建和 Alembic 前滚/回滚/再前滚。
 
-准备互联网大厂 HR 面试时，可下载 [ExperimentLens 互联网大厂 HR 面试问答手册](docs/ExperimentLens-互联网大厂HR面试问答手册.docx)，其中包含项目介绍、贡献口径、高频问题、示范回答、压力追问、STAR 素材与面试前核验清单。
-
 当前已完成的 2.0 边界、尚未宣称完成的生产能力与演进顺序，参见 [2.0 架构实现说明](docs/architecture-2.0.md)。
