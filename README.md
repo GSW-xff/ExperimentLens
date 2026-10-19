@@ -10,12 +10,6 @@ ExperimentLens 是面向机器学习与数据科学实验的证据驱动诊断�
 
 后续 Agent Runtime、SSE、Trace、评测、MLflow 和实验回流的实施顺序，参见 [后续阶段修改扩充实施方案](docs/next-stage-implementation-plan.md)。
 
-面向腾讯、字节跳动等大厂面试的服务化、持久化工作流、可观测性、评测、安全、压测和部署升级路线，参见 [ExperimentLens 修改扩充 2.0 项目方案](docs/experimentlens-2.0-expansion-plan.md)。
-
-基于当前代码真实完成度的岗位适配分析、关键缺口、实施优先级、量化验收标准与面试交付物，参见 [ExperimentLens 大厂 AI Agent 实习竞争力升级方案](docs/interview-competitive-modification-roadmap.md)。
-
-若以最少改动优先获得 Agent 开发岗位的面试竞争力，参见 [ExperimentLens 最小化 Agent 面试竞争力升级方案](docs/minimum-agent-interview-upgrade-plan.md)。
-
 ## 公开仓库资料
 
 本仓库已包含 [MIT 许可证](LICENSE)、[贡献指南](CONTRIBUTING.md)、[安全政策](SECURITY.md)、[行为准则](CODE_OF_CONDUCT.md)、Issue/PR 模板、Dependabot 和 GitHub Actions 质量门禁。首次建库、分支保护与安全设置见 [GitHub 发布清单](docs/github-release-checklist.md)。
@@ -102,12 +96,6 @@ make verify
 ```
 
 该命令依次检查 CLI、后端测试与覆盖率、Ruff、前端测试、TypeScript、前端构建和 Alembic 前滚/回滚/再前滚。
-
-完整项目说明、命令和故障排查见 [项目说明与使用文档](docs/project-description-and-usage.md)；8 分钟演示流程见 [面试演示说明](docs/interview-demo.md)。
-
-面向 AI Agent 初学者的原理、技术栈、代码地图、学习路线和面试问答，见 [从零学习与面试讲解手册](docs/onboarding-and-interview-study-guide.md)。
-
-需要离线学习或打印时，可下载 [Word 版本学习手册](docs/ExperimentLens-Agent-学习与面试手册.docx)。
 
 准备互联网大厂 HR 面试时，可下载 [ExperimentLens 互联网大厂 HR 面试问答手册](docs/ExperimentLens-互联网大厂HR面试问答手册.docx)，其中包含项目介绍、贡献口径、高频问题、示范回答、压力追问、STAR 素材与面试前核验清单。
 
